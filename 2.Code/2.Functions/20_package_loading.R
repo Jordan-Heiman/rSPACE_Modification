@@ -12,7 +12,6 @@
 # Associated publication:   Heiman, J.L., Tucker, J.M., Sells, S.N., Millspaugh, 
 #                         J.J., Schwartz, M.K., [in review]
 
-
 ################################## Creation ####################################
 # Author: Jordan Heiman
 # Date Updated: 2024-10-17
@@ -26,7 +25,7 @@
 ################################################################################
 ## Load required packages
 # Script from:
-# https://vbaliga.github.io/verify-that-r-packages-are-installed-and-loaded/
+# https://vbaliga.github.io/posts/2019-04-28-verify-that-r-packages-are-installed-and-loaded/index.html
 
 ## First specify the packages of interest
 packages <- c("raster", "tcltk2", "ggplot2", "RMark", "magrittr", "terra",
