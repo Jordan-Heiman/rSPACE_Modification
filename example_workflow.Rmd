@@ -24,23 +24,23 @@ These scripts are not currently setup as a package format but this repository ca
 #### Library
 Begin by installing and loading the packages that are needed for the workflow.
 
-```{r package load, message = T}
-source("../2.Functions/00_package_loading.R")
+```{r package load, message = FALSE}
+source("2.Code/1.Functions/00_package_loading.R")
+
 ```
 
 #### Functions
 Source all the functions that are needed for running the modified rSPACE analysis. As well as sourcing on file with c++ functions that are used for efficiency
 
 ```{r function sourcing}
-list.files("../2.Functions/",
+list.files("2.Code/1.Functions/",
            pattern = ".R", 
            full.names = TRUE, 
            recursive = FALSE, 
            include.dirs = FALSE) %>% 
-  lapply(., source) %>% 
-  invisible()
+  lapply(., source) 
 
-dyn.load("../4.C_Scripts/SPACE.dll")
+dyn.load("2.Code/2.C_Scripts/SPACE.dll")
 ```
 
 
