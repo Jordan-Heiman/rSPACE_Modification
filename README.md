@@ -14,7 +14,7 @@ of code. All function source code can be found in 2.Code/2.Functions.
 
 An example workflow can be found in 2.Code/1.Workflow
 
-# References
+## References
 
 Ellis, Martha M., Jacob S. Ivan, Jody M. Tucker, and Michael K.
 Schwartz. 2015. “<span class="nocase">rSPACE</span>: Spatially Based
