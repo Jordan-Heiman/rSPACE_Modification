@@ -281,12 +281,13 @@ create_replicates <- function(n_runs,
     save(Parameters, file = paste0(output.dir, '/Parameters.Rdata'))
   }
   
-  # # If the `saveGrid` argument is selected save the parameters to an Rdata file 
-  # # for use later
-  # if (saveGrid) {
-  #   writeRaster(setValues(map, grid_layer), 
-  #               filename = paste0(output.dir, '/Grid.tif'), overwrite = T)
-  # }
+  # If the `saveGrid` argument is selected save the parameters to an Rdata file
+  # for use later
+  if (saveGrid) {
+    writeRaster(setValues(map, grid_layer),
+                filename = paste0(output.dir, '/Grid.tif'), overwrite = T)
+  }
+  
   # To the parent function, return the folder directory and the file names
   return(list(DIR = folder.dir,
               filenames = paste0(base.name,
