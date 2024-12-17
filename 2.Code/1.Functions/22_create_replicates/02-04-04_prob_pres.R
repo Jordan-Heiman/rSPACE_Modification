@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-23
 
 ## Function purpose: Runs the calc_prob_cpp function
@@ -48,11 +48,11 @@ prob_pres <- function(surface,
   USE <- .C("calc_prob_c", 
             as.double(surface), # Use  =  use surface with prob of at least one individual
             as.integer(gridvec), # Grid = vector of grid indices for each pixel
-            use = as.integer(rep(0, max(gridvec) + 1)), #detection
-            as.double(detP), #detection probability
-            as.integer(length(surface)), #pixels
-            as.integer(max(gridvec)), #max_grid
-            occP = as.double(runif(n = (max(gridvec) + 1))) #test values, output detection probabilities
+            use = as.integer(rep(0, max(gridvec) + 1)), # detection
+            as.double(detP), # detection probability
+            as.integer(length(surface)), # pixels
+            as.integer(max(gridvec)), # max_grid
+            occP = as.double(runif(n = (max(gridvec) + 1))) # test values, output detection probabilities
             )$occP[(unique(gridvec) + 1)[-1]]
   
   # Because a probability cannot be less than zero or greater than one, adjust

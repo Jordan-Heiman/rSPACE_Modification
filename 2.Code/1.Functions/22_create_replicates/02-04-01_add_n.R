@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-21
 
 ## Function purpose: Add individuals to a simulated population
@@ -76,7 +76,7 @@ add_n <- function(dN,
     # For each type of individual...
     new.ind <- lapply(1:nTypes, function(x){
       
-      # Get the current pixel numbers that are occpied by the same type of 
+      # Get the current pixel numbers that are occupied by the same type of 
       # individual
       currentLocations <- pop.df[pop.df$type == x, ]$locID
       
@@ -84,7 +84,11 @@ add_n <- function(dN,
       currentLocations <- xyFromCell(map, currentLocations) 
       
       # Calculate the distance to an occupied pixel from all pixels
-      distances <- distanceFromPoints(map, currentLocations) 
+      if (class(map) == "RasterLayer") {
+        distances <- distanceFromPoints(map, currentLocations) 
+      } else if (class(map) == "SpatRaster") {
+        distances <- distance(map, vect(currentLocations, crs = crs(map)))
+      }
       
       # Create a vector of TRUE/FALSE values for each pixel indicating whether 
       # or not it is far enough from the closest occupied pixel to be a usable
@@ -97,7 +101,7 @@ add_n <- function(dN,
       
       # As long as there is at least one pixel that is available for use based  
       # on these cutoffs, use the place_individuals function to determine the 
-      # location of the new individuals
+      # activity center of the new individuals
       if (length(useLocations) > 0) {
         newInd <- place_individuals(map = map,
                                     use = useLocations,

@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-23
 
 ## Function purpose: Determines individuals to drop from a simulated population

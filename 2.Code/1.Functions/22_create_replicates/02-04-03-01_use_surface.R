@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-22
 
 ## Function purpose: Build a layer that represents the probability of use
@@ -19,8 +19,8 @@
 ################################# Arguments ####################################
 
 # Individuals:
-#     Single vector containing the pixel numbers that are occupied by an 
-#     individual of one type  
+#     Single vector containing the pixel numbers that represent the activity 
+#     centers of one individual type
 # howmuch:
 #     Proportion of movements in movement radius for one individual type
 # howfar:

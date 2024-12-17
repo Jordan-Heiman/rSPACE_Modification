@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-21
 
 ## Function purpose: Simulates an encounter history for all cells in a grid
@@ -26,7 +26,7 @@
 # n_cells:
 #     Number of grid cells in the sampling grid 
 # grid_layer:
-#     Vector that is the length of all the pixel which holds the grid cell 
+#     Vector that is the length of all the pixels which holds the grid cell 
 #     number that the respective pixel is assigned to, with zeros representing 
 #     pixels that should not be assigned to any grid cell
 # printN:
@@ -52,7 +52,7 @@
 encounter_history <- function(map, 
                               Parameters, 
                               n_cells, 
-                              grid_layer,
+                              grid_layer = NULL,
                               printN, 
                               rn, 
                               filter.map = NULL,
@@ -60,13 +60,15 @@ encounter_history <- function(map,
                               out_folder = NULL){
   
   # Set up a progress bar
-  pb <- progress_bar$new(format = "Creating replicates [:bar] :percent eta: :eta", 
+  pb <- progress_bar$new(format = paste0("Simulating replicate ", rn,
+                                         " [:bar] :percent eta: :eta"), 
                          total = max(Parameters$n_yrs), 
                          clear = FALSE)
   
   #   0. Set up for script                                                  ####
   # Use check_parameters function to make sure the parameters have all required 
-  # options included
+  # options included (generally this was already run in the create_replicates
+  # function, but just in case)
   Parameters <- check_parameters(Parameters, 
                                  list(n_cells = n_cells,
                                       grid_layer = grid_layer,
@@ -87,7 +89,8 @@ encounter_history <- function(map,
     flush.console()
   }
   
-  # If the provided grid is NULL..
+  # If the provided grid is NULL (it shouldn't be if calling this function from
+  # create_replicates)..
   if (is.null(grid_layer)) {
     
     # Use the check_map function to check the map and filter
@@ -102,7 +105,9 @@ encounter_history <- function(map,
   
   # Create an empty matrix for the encounter history, each row is a grid cell 
   # and each column is a year
-  encounter_history <- matrix(0, nrow = n_cells, ncol = n_yrs)
+  encounter_history <- matrix(0, 
+                              nrow = n_cells, 
+                              ncol = n_yrs)
   
   #   1. Place individuals                                                  ####
   # Check that the starting population provided in the parameters is at least 0, 
@@ -111,7 +116,7 @@ encounter_history <- function(map,
     stop('Parameters$N <= 0')
   }
   
-  # Create a vector for each individual type with pixels used
+  # Create a vector for each individual type with pixels set as activity centers
   individs <- add_n(dN = Parameters$N,
                     map, 
                     Parameters)
@@ -127,7 +132,8 @@ encounter_history <- function(map,
     
     # If the trend type is abundance - exponential, lambda is the same every 
     # year for as many years as the simulation
-    lmda <- rep(Parameters$lmda, length.out = (n_yrs - 1))
+    lmda <- rep(Parameters$lmda, 
+                length.out = (n_yrs - 1))
     
     # If the trend type is abundance - linear...
   } else if (Parameters$trendtype == 'abundance-linear') {
@@ -144,8 +150,8 @@ encounter_history <- function(map,
       return(1 - indToDrop/(Parameters$N - indToDrop * (1:(n_yrs - 1) - 1)))
     })
     
-    # Currently, scripts are only set up to use an abundance - exponential or an 
-    # abundance - linear trend, if anything else is requested it will error
+    # Currently, scripts are only set up to use an abundance-exponential or an 
+    # abundance-linear trend, if anything else is requested it will error
   } else { 
     stop('Unknown trend type') 
   }
@@ -195,9 +201,6 @@ encounter_history <- function(map,
     aspRatio <- local(
       if (grepl('longlat', crs(map, proj = TRUE))) {
         bbox <- as(extent(ext(map)[1:4]), "SpatialPoints")
-        proj4string(bbox) <- CRS(ifelse(class(map) == "RasterLayer", 
-                                        proj4string(map),
-                                        crs(map)))
         return(unname(mapasp(bbox)))
       } else {
         return(1)
@@ -267,12 +270,14 @@ encounter_history <- function(map,
            colour = 'Type',
            title = 'Individual activity center locations - Year 1')
     
-    
     # Create an example of a random individual's probability of use raster 
     ExampleLayer <- build_use_layer(map, 
                                     list(individs[[1]][sample(length(individs[[1]]), 1)]), 
                                     Parameters, 
                                     Example = T)
+    
+    # Get a value to limit the availability colors
+    max_use <- round(max(useLayer), 5)
     
     # Use that example raster to create a plot
     P4 <- ggplot(data.frame(map_coord, 
@@ -282,7 +287,8 @@ encounter_history <- function(map,
                      fill = z)) +
       geom_raster() +
       scale_fill_gradientn(colours = c('white',
-                                       rev(heat.colors(20)))) +
+                                       rev(heat.colors(20))), 
+                           limits = c(0, max_use)) +
       scale_x_continuous(expand = c(0, 0)) +
       scale_y_continuous(expand = c(0, 0)) +
       coord_fixed(ratio = aspRatio) +
@@ -300,9 +306,8 @@ encounter_history <- function(map,
       # xlim(575000, 625000) +
       # ylim(5150000, 5200000) +
       scale_fill_gradientn(colours = c('white',
-                                       rev(heat.colors(20)))#, 
-                           #limits = c(0, 0.001)
-                           ) +
+                                       rev(heat.colors(20))), 
+                           limits = c(0, max_use)) +
       scale_x_continuous(expand = c(0, 0)) +
       scale_y_continuous(expand = c(0, 0)) +
       coord_fixed(ratio = aspRatio) +
@@ -313,12 +318,14 @@ encounter_history <- function(map,
     # individual by grid cell
     P6 <- ggplot(data.frame(map_coord,
                             z = c(0, P.pres[, 1])[match(grid_layer, 
-                                                        unique(c(0, grid_layer)))]),
+                                                        unique(c(0,
+                                                                 grid_layer)))]),
                  aes(x = x,
                      y = y, 
                      fill = z)) +
       geom_raster() +
-      scale_fill_gradientn(colours = c('white', rev(heat.colors(20)))) +
+      scale_fill_gradientn(colours = c('white', 
+                                       rev(heat.colors(20)))) +
       scale_x_continuous(expand = c(0, 0)) +
       scale_y_continuous(expand = c(0, 0)) +
       # xlim(575000, 625000) +
@@ -509,7 +516,9 @@ encounter_history <- function(map,
           dir.create(plots_folder)
         }  
         
-        filenames <- paste0("run_", rn, "_", names(plot_lst), "_Y", tt, ".jpeg")
+        filenames <- paste0("run_", rn, "_",
+                            names(plot_lst), "_Y", 
+                            tt, ".jpeg")
         
         pwalk(list(filenames, 
                    plot_lst), 
@@ -539,35 +548,27 @@ encounter_history <- function(map,
       # Now end the year loop and if statement 
     }}
   
-  
-  
-  
-  
-  
   #   6. Save simulation information                                        ####
   # Set up a data frame containing some summary information about the population
-  PopulationTotals <- data.frame(rn = rn,
-                                 Year = 1:n_yrs - 1,
-                                 N = N,
-                                 # Calculate psi (occupancy) based on one visit
-                                 truePsi_1visit = unname(apply(P.pres, 
-                                                               2, sum)/nrow(P.pres)),
-                                 # Calculate psi (occupancy) based on the maximum 
-                                 # number of visits provided in the parameters
-                                 truePsi_MaxVisits = unname(apply(P.pres, 
-                                                                  2, function(x){
-                                                                    sum(1 - (1 - x)^n_visits)
-                                                                  })/nrow(P.pres)),
-                                 # Calculate the asymptotic psi (occupancy) based 
-                                 # on if an infinite number of visits were possible
-                                 truePsi_Asymptotic = unname(apply(P.pres,
-                                                                   2, function(x){
-                                                                     sum(x > 0)
-                                                                     })/nrow(P.pres)),
-                                 truePsi_Pixel = unlist(lapply(use_lst, 
-                                                               function(x) {
-                                                                 sum(x > 0)/length(x)
-                                                                 })))
+  PopulationTotals <- data.frame(
+    rn = rn,
+    Year = 1:n_yrs - 1,
+    N = N,
+    # Calculate psi (occupancy) based on one visit
+    truePsi_1visit = unname(apply(P.pres, 2, sum)/nrow(P.pres)),
+    # Calculate psi (occupancy) based on the maximum number of visits provided 
+    # in the parameters
+    truePsi_MaxVisits = unname(apply(P.pres, 2, function(x){
+      sum(1 - (1 - x)^n_visits)
+    })/nrow(P.pres)),
+    # Calculate the asymptotic psi (occupancy) based on if an infinite number of 
+    # visits were possible
+    truePsi_Asymptotic = unname(apply(P.pres, 2, function(x){
+      sum(x > 0)
+    })/nrow(P.pres)),
+    truePsi_Pixel = unlist(lapply(use_lst, function(x) {
+      sum(x > 0)/length(x)
+    })))
     
   # Save the population summary table to the file designated by the parent 
   # function, if `showSteps` is set to TRUE this will not happen and the 

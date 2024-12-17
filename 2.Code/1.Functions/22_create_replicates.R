@@ -220,9 +220,10 @@ create_replicates <- function(n_runs,
   if (add == F 
       & n.prevFiles > 0 
       & overwrite == F) {
-    stop(paste('\nExisting rSPACE runs found in',
-               folder.dir,
-               '\n Use "overwrite=T" to replace or "add=T" to add to existing folder'))
+    stop(paste(
+      '\nExisting rSPACE runs found in',
+      folder.dir,
+      '\n Use "overwrite = T" to replace or "add = T" to add to existing folder'))
   }
   
   # Set up a progress bar
@@ -236,7 +237,7 @@ create_replicates <- function(n_runs,
   for (rn in (1:n_runs) + rn.start) {
     
     # First print the run number to the console
-    # flush.console()  is mostly for clearing the console in certain OS and 
+    # flush.console() is mostly for clearing the console in certain OS and 
     # versions of R 
     cat('\rn', rn, '\n')
     flush.console()

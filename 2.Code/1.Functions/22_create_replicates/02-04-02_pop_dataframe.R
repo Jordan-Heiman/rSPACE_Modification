@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-21
 
 ## Function purpose: Create a data frame with details of a simulated population
@@ -21,7 +21,7 @@
 # pop.list
 #     List of vectors with a length equal to the number of types of individuals 
 #     in the simulated population. Each vector contains the pixel numbers that 
-#     are occupied by an individual of one type  
+#     represent an individual activity center  
 # map:
 #     Raster of probability of use for species of interest
 
@@ -44,7 +44,8 @@ pop_dataframe <- function(pop.list,
   # Get the number of individuals per type
   nPerType <- sapply(pop.list, length)
   
-  # Create a data frame that has the used pixels and individual type in that pixel
+  # Create a data frame that has the pixel number of the activity centers and 
+  # the individual type 
   pop.df <- data.frame(type = rep(1:nTypes, nPerType),
                        locID = unlist(pop.list))
   if (!is.null(map)) {

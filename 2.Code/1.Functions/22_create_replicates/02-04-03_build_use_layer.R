@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-22
 
 ## Function purpose: Build a probability of use layer for simulated population
@@ -23,12 +23,10 @@
 # individuals:
 #     List of vectors with a length equal to the number of types of individuals 
 #     in the simulated population. Each vector contains the pixel numbers that 
-#     are occupied by an individual of one type  
+#     represent the activity centers of one type of individual
 # Parameters:
 #     Parameters for simulation as entered through enter_parameters functions or
 #     as manually created in a list 
-# Example:
-#     
 
 ################################# Output #######################################
 
@@ -43,14 +41,14 @@
 
 build_use_layer <- function(map, 
                             individuals,
-                            Parameters,
-                            Example = F){
+                            Parameters, 
+                            Example = FALSE){
   
   # Get the number of individual types from the parameters list
   nTypes <- length(Parameters$MFratio)
   
   # Use use_surface function to create a layer that represents the probability 
-  # of not being used for each pixel for ind type 1
+  # of not being used for each pixel for individual type 1
   NotUsed <- 1 - use_surface(Individuals = individuals[[1]],
                              howmuch = Parameters$moveDistQ[1],
                              howfar = Parameters$moveDist[1],

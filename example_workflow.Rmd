@@ -107,6 +107,12 @@ Parameters <- list(
   N = 50, 
   # Population growth rate
   lmda = 0.933, 
+  # [Optional] The population trend type, either "abundance-exponential" (Default) 
+  # or "abundance-linear". Under abundance-exponential, the population 
+  # experiences exponential growth with the same value of lambda every year. 
+  # Under abundance-linear, the population experiences and overall growth rate 
+  # of the above lambda value between year 1 and the last year of the simulation. 
+  trendtype = "abundance-exponential",
   # Number of years to simulate
   n_yrs = 10, 
   # Proportion of each type of individual (in this case 2 types, females [60% of
@@ -137,9 +143,9 @@ Parameters <- list(
   # Maximum number of visits to a grid cell per year to simulated (number of 
   # visits can be subset to smaller values during analysis process)
   n_visits = 6,
-  # Whether or not activity centers should be weighted based on the underlying 
-  # raster values. Setting this to TRUE can take a lot of processing power 
-  # depending on the size of the focal area. 
+  # Whether or not activity centers and  which individuals are removed should be
+  # weighted based on the underlying raster values. Setting this to TRUE can 
+  # take a lot of processing power depending on the size of the focal area. 
   wghts = FALSE, 
   # The class of raster that was read in above, this can be a spatRaster or 
   # Rast depening on the function/package that was used
@@ -159,7 +165,7 @@ run.label <- "Wolverine_Example_Sim"
 base.name <- paste0(run.label, "_")
 ```
 
-Next is an optional argument for a second raster that can be used to filter the provided habitat/probability of use layer for the species of interest. This will be set to NULL for this example. If a filter map is provided, a cut.off value for the filter map should be added to the Parameter list (named filter.cutoff). If no filter cutoff value is provided a default of 0.95 will be used if all values in the filter map are $\le$ 1.
+Next is an optional argument for a second raster that can be used to filter the provided habitat/probability of use layer for the species of interest. This will be set to NULL for this example. If a filter map is provided, the filter map must be a raster of 0s and 1s with 1 indicating pixels to include in the simulation. A cut off value for the filter map should be added to the Parameter list (named filter.cutoff). The filter cutoff refers to the minimum proportion of the pixels within a grid cell that equal 1 in order for it to be sampled. If no filter cutoff value is provided a default of 0.95 will be used.
 
 ```{r filter.map}
 filter.map <- NULL
@@ -195,12 +201,12 @@ add <- FALSE
 overwrite <- TRUE
 
 # A TRUE/FALSE operator to indicate whether or not to display simulation maps 
-# for each simulated year in the Plots window as they are created. If creating 
-# more than one replicate it is recommended to set this to FALSE as it 
-# drastically slows the processing time. In practice a single replicate can be 
-# created with showSteps set to TRUE in order to check the settings then more 
-# replicates can be created by reading in the save parameters and using the same 
-# run.label with add = TRUE and overwrite = FALSE.
+# for each simulated year in the Plots window as they are created and save them
+# to the output folder. If creating more than one replicate it is recommended to 
+# set this to FALSE as it drastically slows the processing time. In practice a 
+# single replicate can be created with showSteps set to TRUE in order to check 
+# the settings then more replicates can be created by reading in the save 
+# parameters and using the same run.label with add = TRUE and overwrite = FALSE.
 showSteps <- ifelse(n_runs == 1, TRUE, FALSE)
 ```
 
@@ -221,7 +227,18 @@ create_replicates(n_runs = n_runs,
                   overwrite = overwrite, 
                   showSteps = showSteps)
 ```
-            
+
+As the function runs it will print the replicate number that it is working on, this is referred to as the run number. This will be followed by a progress bar for the replicate itself and one for the overall simulation of all replicates. 
+
+
+
+extra parameters: 
+  -effective sampling area (measured in sqkm)? (how to incorporate when selecting new cells every year, currently would be the same effective area in each cell?)
+
+  -repeat.groups? looks like for repeating an individual type, not sure why you would want that? 
+
+
+
 # References
 
 ::: {#refs}

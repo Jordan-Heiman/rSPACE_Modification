@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-21
 
 ## Function purpose: Determine locations to place simulated individuals
@@ -80,13 +80,13 @@ place_individuals <- function(map,
   
   # Use the sample_ind function to determine the used pixels in the simulation
   USE <- .C('sample_ind_c',
-            as.double(x),               #Longitude
-            as.double(y),               #Latitude
-            as.integer(N),              #Desired number of wolverines to place
-            as.double(buffer),          #Minimum distance between points
-            use = as.integer(use10),    #Indicator of whether to include or not
-            as.integer(n),              #Number of snow_points to check (maxid)
-            as.integer(smp - 1))$use    #Random order to use (shift for C indexing)
+            as.double(x),               # Longitude
+            as.double(y),               # Latitude
+            as.integer(N),              # Desired number of individuals to place
+            as.double(buffer),          # Minimum distance between activity centers
+            use = as.integer(use10),    # Indicator of whether to include or not
+            as.integer(n),              # Number of points to check (maxid)
+            as.integer(smp - 1))$use    # Random order to use (shift for C indexing at 0)
   
   return((1:n)[USE == 1])
   

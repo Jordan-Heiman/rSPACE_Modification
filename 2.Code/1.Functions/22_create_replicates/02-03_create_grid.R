@@ -93,7 +93,7 @@ create_grid <- function(map,
 
   # Check that there is more than one grid cell created
   if (length(unique(gridLayer)) == 1) {
-    stop("No grid cells in layer. Check filtering steps")
+    stop("No grid cells in layer. Check filtering steps.")
   }
 
   # If an effective sampling area is supplied use the reduce_area function to
