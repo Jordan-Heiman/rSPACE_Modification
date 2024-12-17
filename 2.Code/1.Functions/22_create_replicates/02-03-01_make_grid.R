@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-20
 
 ## Function purpose: Creates sampling grid based on provided raster
@@ -42,7 +42,9 @@ make_grid <- function(map,
   # Using the provided raster, pull out the number of pixels in the raster (n), 
   # the x coordinates of every pixel (x), and the y coordinates of every pixel 
   # (y)
-  n <- ifelse(class(map) == "RasterLayer", length(getValues(map)), global(map, "notNA")[1, 1])
+  n <- ifelse(class(map) == "RasterLayer",
+              length(getValues(map)), 
+              global(map, "notNA")[1, 1])
   x <- xFromCell(map, 1:n)
   y <- yFromCell(map, 1:n)
   
@@ -84,7 +86,9 @@ make_grid <- function(map,
     
     # This creates a list of all possible pixel locations and sets their value
     # to 0 to start with
-    gridDF <- expand.grid(x = 1:map_xy[1], y = 1:map_xy[2], value = 0)
+    gridDF <- expand.grid(x = 1:map_xy[1],
+                          y = 1:map_xy[2],
+                          value = 0)
     
     # This keeps only the pixels that can evenly fit into the grid while 
     # centering that grid on the map

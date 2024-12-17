@@ -29,7 +29,7 @@
 
 ## First specify the packages of interest
 packages <- c("raster", "tcltk2", "ggplot2", "RMark", "magrittr", "terra",
-              "progress", "plyr", "dplyr", "purrr", "data.table")
+              "progress", "plyr", "dplyr", "purrr", "data.table", "readxl")
 
 ## Now check each package, if it needs to be installed, install it, then load it
 package.check <- lapply(

@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-20
 
 ## Function purpose: Create encounter histories for sampling replicates
@@ -55,6 +55,15 @@
 # overwrite:
 #     Default: FALSE; A TRUE/FALSE operator to indicate whether or not to  
 #     overwrite existing simulation files
+# showSteps:
+#     Default: FALSE; A TRUE/FALSE operator to indicate whether or not to 
+#     display simulation maps for each simulated year in the Plots window as 
+#     they are created. If creating more than one replicate it is recommended to
+#     set this to FALSE as it drastically slows the processing time. In practice
+#     a single replicate can be created with showSteps set to TRUE in order to 
+#     check the settings then more replicates can be created by reading in the 
+#     save parameters and using the same run.label with add = TRUE and 
+#     overwrite = FALSE.
 
 ################################# Output #######################################
 
@@ -81,13 +90,13 @@ create_replicates <- function(n_runs,
                               overwrite = T,
                               showSteps = F){
   
-  list.files("./2.Code/2.Functions/22_create_replicates",
+  list.files("2.Code/1.Functions/22_create_replicates",
              full.names = TRUE) %>% 
     lapply(., source) %>% 
     invisible()
   
   #   0. Match argument list and set up files                               #### 
-  # Confirm it is alright to save/write files
+  # Confirm it is alright to save/write files (depending on skipConfirm arg)
   if (!skipConfirm) {
     askConfirm <- ("" == readline(prompt = "\n rSPACE creates text files.
         If you're ok with this, press ENTER to continue.
@@ -173,19 +182,7 @@ create_replicates <- function(n_runs,
   # Now use the check_parameters function, to check for a few pieces that might
   # be missing and add defaults for them
   Parameters <- check_parameters(Parameters, 
-                                 list(n_runs, 
-                                      map,
-                                      Parameters,
-                                      folder.dir = getwd(),
-                                      run.label = 'rSPACE_X',
-                                      base.name = 'rSPACEx',
-                                      filter.map = NULL,
-                                      printN = 1,
-                                      saveParameters = 1,
-                                      saveGrid = 0,
-                                      skipConfirm = F,
-                                      add = F,
-                                      overwrite = T))
+                                 list(filter.map = filter.map))
   
   #   2. Set up map + grid layer                                            ####
   # Make sure that a map layer was provided in the arguments, otherwise error 

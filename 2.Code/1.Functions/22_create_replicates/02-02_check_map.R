@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-20
 
 ## Function purpose: Check map for NAs, NaNs, etc.
@@ -38,12 +38,12 @@ check_map <- function(map,
   # Process for type Raster
   if (class(map) == "RasterLayer") {
     # checks that map uses either UTMs for lat/long
-    if (!grepl("proj=utm|proj=longlat",proj4string(map))) {
+    if (!grepl("proj=utm|proj=longlat", proj4string(map))) {
       stop("Projection needs to be in utm or longlat")
     }
   
-    # if the map uses UTMs make sure the units are in meters, and if that isn"t in
-    # the proj4 string, add it and warn user
+    # if the map uses UTMs make sure the units are in meters, and if that isn't 
+    # in the proj4 string, add it and warn user
     if (grepl("+proj=utm.*", proj4string(map))) {
       if (!grepl("+units=m", proj4string(map))) {
         message("Assuming UTM +units=m")
@@ -58,13 +58,13 @@ check_map <- function(map,
       stop("NaNs in habitat map")
     }
   
-    # if a filter map is provided, check for the same projection, extent, resolution 
-    # and that there are not any NA values
+    # if a filter map is provided, check for the same projection, extent, 
+    # resolution and that there are not any NA values
     if (!is.null(filter.map) & class(filter.map) == "RasterLayer") {
       if (proj4string(filter.map) != proj4string(map)) {
         stop("map and filter.map must have the same projection")}
       if (any(is.nan(getValues(filter.map)))) {
-        stop("NaNs in filter.map")}
+        stop("NaNs in filter.map. Replace with 0s")}
       if (any(is.na(getValues(map)))) {
         stop("NAs in filter.map. Replace with 0s")}
       if (extent(filter.map) != extent(map)) {
@@ -72,7 +72,8 @@ check_map <- function(map,
       if (any(res(filter.map) != res(map))) {
         stop("map and filter.map must have the same resolution")}
     } else if (!is.null(filter.map) & class(filter.map) != "RasterLayer") {
-      stop("Filter map class is different than habitat map, please provide both maps as the same class")
+      stop(paste0("Filter map class is different than habitat map, please ",
+                  "provide both maps as the same class"))
     }
   
     # Process for SpatRaster
@@ -83,10 +84,10 @@ check_map <- function(map,
       stop("Projection needs to be in utm or longlat")
     }
     
-    # if the map uses UTMs make sure the units are in meters, and if that isn"t in
-    # the proj4 string, add it and warn user
+    # if the map uses UTMs make sure the units are in meters, and if that isn't 
+    # in the proj4 string, add it and warn user
     if (grepl("+proj=utm.*", crs(map, proj = TRUE))) {
-      if (!grepl("+units=m",crs(map, proj = TRUE))) {
+      if (!grepl("+units=m", crs(map, proj = TRUE))) {
         message("Assuming UTM +units=m")
       }}
     
@@ -101,7 +102,7 @@ check_map <- function(map,
       if (crs(filter.map) != crs(map)) {
         stop("map and filter.map must have the same projection")}
       if (global(filter.map, "isNA") > 0) {
-        stop("NaNs in filter.map")}
+        stop("NaNs in filter.map. Replace with 0s")}
       if (global(map, "isNA") > 0) {
         stop("NAs in filter.map. Replace with 0s")}
       if (ext(filter.map) != ext(map)) {
@@ -109,11 +110,13 @@ check_map <- function(map,
       if (any(res(filter.map) != res(map))) {
         stop("map and filter.map must have the same resolution")}
     } else if (!is.null(filter.map) & class(filter.map) != "SpatRaster") {
-      stop("Filter map class is different than habitat map, please provide both maps as the same class")
+      stop(paste0("Filter map class is different than habitat map, please ",
+                  "provide both maps as the same class"))
     }
     
   } else{
-    stop("Habitat map is not a raster::RasterLayer or terra::SpatRaster, please provide habitat map in one of these two formats")
+    stop(paste0("Habitat map is not a raster::RasterLayer or terra::SpatRaster,",
+                " please provide habitat map in one of these two formats"))
   }
   
   return(map)

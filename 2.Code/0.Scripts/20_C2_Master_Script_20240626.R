@@ -1,166 +1,8 @@
-#### Predicting Range and Occupancy Trends of Montane Red Fox (Master's Thesis) ####
-####    Chapter 2 - Power to detect occupancy trends with variable sampling     ####
-## Primary Code Author: Jordan Heiman, Martha Ellis
-## Date: 2023-07-03
 
-## Code purpose: Investigation of the possibility of detecting trends in montane
-#                red foxes using variable sampling techniques.
-
-################################################################################
-#   Library / Functions / Data                                              ####
-
-#      Library                                                              ####
-# Load packages via sourcing a package function file. These are chapter specific
-source("./2.Code/2.Functions/20_package_loading.R")
-library(readxl)
-
-#      Functions                                                            ####
-# This sources all the function files for this chapter, ignoring files with key 
-# phrases in their file path. These phrases include 'package', and 'Not_in_use'. 
-# Package files are only sourced above as they are chapter specific
-list.files("./2.Code/2.Functions",
-           pattern = ".R$",
-           full.names = TRUE,
-           recursive = FALSE, 
-           include.dirs = FALSE) %>%
-  grep("package|Not_in_use", ., invert = TRUE, value = TRUE) %>%
-  grep("2[[:digit:]]_.*.R", ., ignore.case = TRUE, value = TRUE) %>%
-  lapply(., source) %>%
-  invisible()
-
-dyn.load("./2.Code/4.C_Scripts/SPACE.dll")
-
-#      Data                                                                 ####
-# Establishes the location of the output folder for saving results to
-output_folder <- here::here("3.Outputs")
 
 ################################################################################
 #   1.0 Option to create replicates                                         ####
-# Prompts user about creating new replicates for a simulation, if no is selected, 
-# script continues to testing replicates section
-if (svDialogs::dlg_message("Create replicates?", 
-                           type = "yesno")$res == "yes") {
-  
-  #      1.1 Gather Simulation Information                                  ####
-  # The user has the ability to use a set of existing simulation parameters. 
-  # This should be used for adding replicates to an existing simulation but can 
-  # also be utilized for modifying previous simulation parameters and creating a 
-  # new set of replicates in another location. 
-  if (svDialogs::dlg_message("Use existing simulation information?",
-                             type = "yesno")$res == "yes") {
-    
-    # Lists current simulation folders for the user to select from
-    sim_name <- list.dirs(output_folder, 
-                                      recursive = FALSE,
-                                      full.names = FALSE) %>% 
-      grep("^XX", ., invert = TRUE, value = TRUE) %>% 
-      select.list(graphics = TRUE,
-                  title = "Choose Existing Simulation")
-    
-    # Load the parameters file that was saved to the selected simulation folder
-    params <- local({load(paste0(output_folder, "/", 
-                                 sim_name, "/output/Parameters.Rdata"))
-      Parameters})
-    
-    # Prompt the user about changing the simulation name, which will change the 
-    # folder that simulations will be saved to
-    sim_name <- svDialogs::dlg_input(paste0("Below is the name of the current ",
-                                            "simulation. If you would like to ",
-                                            "change this name please do so ",
-                                            "below. Please note that changing ",
-                                            "the simulation name will create a ",
-                                            "new folder for the simulation to ",
-                                            "be saved to. Simulation names ",
-                                            "should begin with N##_"),
-                                       default = sim_name)$res
-    
-    # Have the user select a habitat suitability raster
-    rast_file <- svDialogs::dlg_open(title = "Select Use Raster", 
-                                     filters = c("TIFF (*.tif)", "*.tif"),
-                                     default = "./1.Data/4.Use_Rasters/*",
-                                     multiple = FALSE)$res 
-    
-    # Load the habitat raster, make sure there are no NA or negative values
-    rast <- raster::raster(rast_file)
-    rast[is.na(rast)] <- 0
-    rast[rast < 0] <- 0
-    
-    # Store the class of the raster, in the parameter list, this was mostly used 
-    # when updated the package to use `terra` but for now sticking with the old 
-    # `raster` package. Yet another thing to investigate for wider use.
-    params$raster_type <- class(rast)
-    
-  # If the user opts to create a new simulation rather than using an existing 
-  # set of simulations...
-  } else {
-    
-    # Use the rSPACE function to open a dialog that parameters can be entered 
-    # in, for some reason this seems to always open in the background, probably
-    # should look into that if this is going to be used by others 
-    params <- enter_parameters()
-    
-    # Ask the user if they would like to have individual activity center 
-    # locations weighted by the habitat suitability, saying yes adds an
-    # extraordinary amount of processing time. Another thing to investigate for
-    # wider spread use cases
-    params$wghts <- ifelse(svDialogs::dlg_message("Weight where individuals are placed?",
-                                                  type = "yesno")$res == "yes", TRUE, FALSE)
-    
-    # Have the user select a habitat suitability raster
-    rast_file <- svDialogs::dlg_open(title = "Select Use Raster", 
-                                filters = c("TIFF (*.tif)", "*.tif"),
-                                default = "./1.Data/4.Use_Rasters/*",
-                                multiple = FALSE)$res 
-    
-    # Load the habitat raster, make sure there are no NA or negative values
-    rast <- raster::raster(rast_file)
-    rast[is.na(rast)] <- 0
-    rast[rast < 0] <- 0
-    
-    # Store the class of the raster, in the parameter list, this was mostly used 
-    # when updated the package to use `terra` but for now sticking with the old 
-    # `raster` package. Yet another thing to investigate for wider use.
-    params$raster_type <- class(rast)
-    
-    # Have the user provide a name for the simulation, this will also be the 
-    # base name for all the files created
-    sim_name <- svDialogs::dlg_input("Enter simulation name:",
-                                     default = paste0("N", params$N, "_", 
-                                                      gsub(".tif", "", basename(rast_file))))$res
-  }
-  
-  # Enter a number of replicates to create. Suggest to just create one replicate 
-  # first which will automatically save the population maps to ensure things 
-  # are running smoothly. 
-  reps <- svDialogs::dlg_input("How many (more) replicates")$res %>% 
-    as.integer()
-  
-  # Optional stepping through for debugging purposes
-  if (svDialogs::dlg_message("Step through creating replicates?", 
-                             type = "yesno")$res == "yes") {
-    
-    # Create all the variables needed for debugging
-    n_runs <- reps
-    map <- rast
-    Parameters <- params
-    folder.dir <- output_folder
-    run.label <- sim_name
-    base.name <- paste0(sim_name, "_")
-    filter.map <- NULL
-    printN <- 1
-    saveParameters <- 1
-    saveGrid <- 0
-    skipConfirm <- T 
-    add <- T
-    overwrite <- F
-    showSteps <- ifelse(reps == 1, TRUE, FALSE)
-    
-    # In case I accidentally run a bunch of code I didn't mean to, this will stop 
-    # the code here rather than moving on and causing a bunch of errors
-    stop()
-    
-  } else {
-    
+
     # Use the updated `rSPACE` function to create population and encounter history
     # replicates for the provided parameters. Suggest to just create one 
     # replicate first which will automatically save the population maps to 
@@ -179,8 +21,8 @@ if (svDialogs::dlg_message("Create replicates?",
                       add = T,
                       overwrite = F, 
                       showSteps = ifelse(reps == 1, TRUE, FALSE))
-  }
-}
+  
+
 
 #   2.0 Option to test replicates                                           ####
 # Test the power of replicates that were created by the create replicate section
@@ -230,14 +72,19 @@ if (svDialogs::dlg_message("Test replicates?",
     # And confirm with user that the same testing parameters are desired
     change <- svDialogs::dlg_message(paste("Current testing parameters: ", 
                                            "Number of visits: ", 
-                                           paste0(params$n_visit_test, collapse = ", "),
+                                           paste0(params$n_visit_test, 
+                                                  collapse = ", "),
                                            "Detection Probability: ",
-                                           paste0(params$detP_test, collapse = ", "),
+                                           paste0(params$detP_test,
+                                                  collapse = ", "),
                                            "Grid Percentage: ", 
-                                           paste0(params$grid_sample, collapse = ", "), 
+                                           paste0(params$grid_sample, 
+                                                  collapse = ", "), 
                                            "Sampling Model:", 
-                                           paste0(model_tbl[number %in% params$alt_model,  
-                                                            name], collapse = ", "),
+                                           paste0(model_tbl[number %in%
+                                                              params$alt_model,  
+                                                            name], 
+                                                  collapse = ", "),
                                            "Change these settings?"),
                                      type = "yesno")$res
     
@@ -245,8 +92,9 @@ if (svDialogs::dlg_message("Test replicates?",
   
   # If changing the parameters was selected and the testing parameters were 
   # saved in the simulation folder
-  if (change == "yes" | !file.exists(paste0(output_folder, "/", sim_name, 
-                                            "/output/Parameters_testing.Rdata"))) {
+  if (change == "yes" | 
+      !file.exists(paste0(output_folder, "/", sim_name, 
+                          "/output/Parameters_testing.Rdata"))) {
 
     # Load the simulation parameters only
     params <- local({load(paste0(output_folder, "/", sim_name, 
@@ -254,23 +102,26 @@ if (svDialogs::dlg_message("Test replicates?",
       Parameters})
     
     # Have the user determine the number of visits to test
-    params$n_visit_test <- svDialogs::dlg_list(1:params$n_visits,
-                                               multiple = TRUE, 
-                                               title = "Number of visits to test")$res %>% 
+    params$n_visit_test <- svDialogs::dlg_list(
+      1:params$n_visits,
+      multiple = TRUE, 
+      title = "Number of visits to test")$res %>% 
       as.integer()
     
     # Have the user determine the detection probabilities to test
-    params$detP_test <- svDialogs::dlg_input(message = "Detection prob to test")$res %>% 
+    params$detP_test <- svDialogs::dlg_input(
+      message = "Detection prob to test")$res %>% 
       strsplit(", ") %>% 
       unlist() %>% 
       as.numeric()
     
     # Have the user determine the percentages of the cells to test (consistent 
     # sampling as in the original rSPACE package) to test
-    params$grid_sample <- svDialogs::dlg_list(seq(.05, 1, 0.05),
-                                              preselect = seq(.05, .95, by = .1),
-                                              multiple = TRUE, 
-                                              title = "Percent of cells to test")$res %>% 
+    params$grid_sample <- svDialogs::dlg_list(
+      seq(.05, 1, 0.05),
+      preselect = seq(.05, .95, by = .1),
+      multiple = TRUE, 
+      title = "Percent of cells to test")$res %>% 
       as.numeric()
     
     # Determine the sampling strategy to test. Fully variable sampling must be
@@ -287,11 +138,12 @@ if (svDialogs::dlg_message("Test replicates?",
     # If spatial inconsistency is selected, the user needs to provide the 
     # percentages of cells that should be kept consistent each season. 
     if (4 %in% params$alt_model) {
-      params$spatial_percents <- svDialogs::dlg_list(seq(.05, 1, 0.05),
-                                                     preselect = seq(.05, .95, 
-                                                                     by = .25),
-                                                     multiple = TRUE, 
-                                                     title = "Percent of cells to keep spatially consistent")$res %>% 
+      params$spatial_percents <- svDialogs::dlg_list(
+        seq(.05, 1, 0.05),
+        preselect = seq(.05, .95, 
+                        by = .25),
+        multiple = TRUE, 
+        title = "Percent of cells to keep spatially consistent")$res %>% 
         as.numeric()
     } else {
       params$spatial_percents <- 1
@@ -301,8 +153,10 @@ if (svDialogs::dlg_message("Test replicates?",
     # provide a maximum and minimum percent of the landscape to sample each 
     # season
     if (5 %in% params$alt_model) {
-      grid_range <- svDialogs::dlg_input("Enter a minimum and maximum percent of the landscape to sample for each year in the format (min, max)",
-                                         default = "0.01, 0.10")$res %>% 
+      grid_range <- svDialogs::dlg_input(
+        paste0("Enter a minimum and maximum percent of the landscape to sample ",
+               "for each year in the format (min, max)"),
+        default = "0.01, 0.10")$res %>% 
         strsplit(", ") %>% 
         unlist() %>% 
         as.numeric()
@@ -319,8 +173,10 @@ if (svDialogs::dlg_message("Test replicates?",
     # sampled is approximately 4.8%, and sampling more than 20% of the landscape 
     # is highly unlikely. 
     if (6 %in% params$alt_model) {
-      beta_params <- svDialogs::dlg_input("Enter the alpha and beta parameters for the beta distribution seperated by a comma.",
-                                         default = "1.5, 30")$res %>% 
+      beta_params <- svDialogs::dlg_input(
+        pate0("Enter the alpha and beta parameters for the beta distribution ",
+              "seperated by a comma."),
+        default = "1.5, 30")$res %>% 
         strsplit(", ") %>% 
         unlist() %>% 
         as.numeric()
@@ -329,8 +185,10 @@ if (svDialogs::dlg_message("Test replicates?",
       
       # In order to also test baseline sampling, where a small percentage of the 
       # landscape is always sampled, the user must provide the baseline percent
-      base <- svDialogs::dlg_input("Enter the lowest percentage of the landscape to be sampled as a decimal, for example for 5% baseline sampling, enter 0.05",
-                                          default = "0")$res %>% 
+      base <- svDialogs::dlg_input(
+        paste0("Enter the lowest percentage of the landscape to be sampled as ",
+               "a decimal, for example for 5% baseline sampling, enter 0.05"),
+        default = "0")$res %>% 
         as.numeric()
       params$base <- params$grid_min <- base
     } else {
@@ -444,13 +302,16 @@ sim_name <- select.list(list.dirs(output_folder,
 # Because testing gets run separately for model 5 and 6, some of the results 
 # files might need to be compiled into one file
 if (length(sim_name) == 1) {
-  if (svDialogs::dlg_message("Would you like to compile simulation results into one file?",
-                             type = "yesno")$res == "yes") {
+  if (svDialogs::dlg_message(
+    "Would you like to compile simulation results into one file?",
+    type = "yesno")$res == "yes") {
   
-    sim_files <- list.files(path = paste0(output_folder, "/", sim_name, "/output"),
+    sim_files <- list.files(path = paste0(output_folder, 
+                                          "/", sim_name, "/output"),
                             pattern = "sim_results.txt$")
     
-    names(sim_files) <- list.files(path = paste0(output_folder, "/", sim_name, "/output"),
+    names(sim_files) <- list.files(path = paste0(output_folder, 
+                                                 "/", sim_name, "/output"),
                                    pattern = "sim_results.txt$",
                                    full.names = TRUE)
     
@@ -465,7 +326,8 @@ if (length(sim_name) == 1) {
       rbindlist(use.names = TRUE)
     
     write.table(sim_results, 
-                file = paste0(output_folder, "/", sim_name, "/output/compiled_sim_results.txt"))
+                file = paste0(output_folder, "/", sim_name, 
+                              "/output/compiled_sim_results.txt"))
     
   }
 }
@@ -495,8 +357,9 @@ for (i in 1:length(sim_name)) {
     unique()
   
   if (length(pop_grid) != 1) {
-    stop(paste0("Grid sizes of populations not the same, please check replicates for ", 
-                sim_name[[i]]))
+    stop(paste0(
+      "Grid sizes of populations not the same, please check replicates for ", 
+      sim_name[[i]]))
   }
   
   grid_total[sim == sim_name[[i]], total_cells := pop_grid]
@@ -531,7 +394,8 @@ dtaS[, grid_range := ifelse(grid_min == grid_max,
                                    levels = c("4%", "5%", "6%", "9%", "10%",
                                               "15%", "25%", "35%", "45%",
                                               "55%", "65%", "75%", "85%", "95%",
-                                              "0% - 100%", "2.5% - 100%", "5% - 100%")))]
+                                              "0% - 100%", "2.5% - 100%",
+                                              "5% - 100%")))]
 
 #   4.0 Plotting                                                            ####
 # Setup labels for faceting later
@@ -736,7 +600,8 @@ ggsave(filename = "Effect_Spatial_Varaibility_Presentation.tiff",
                                             sim == "RRD_new_params"), 
                             aes(x = loc_per*100,
                                 y = (count/n_runs),
-                                group = interaction(n_visits, n_grid, detP, grid_range))) +
+                                group = interaction(n_visits, n_grid, detP, 
+                                                    grid_range))) +
    geom_abline(aes(intercept = 0.25, 
                    slope = .0080),
                linewidth = 1.25) +
@@ -886,9 +751,10 @@ sup_plot_names <- "Effect_Effort_Variability_Sup_psim030"
 # the line above
 for (i in 1:length(tpin_plot_sets)) {
   
-  sup_plot <- tpin_plot_fxn(unlist(tpin_plot_sets[i]), 
-                            psim = 0.3, 
-                            plot_title = expression(Low~per~Occasion~Detection~Probability~(p[sim]==0.3)))
+  sup_plot <- tpin_plot_fxn(
+    unlist(tpin_plot_sets[i]), 
+    psim = 0.3, 
+    plot_title = expression(Low~per~Occasion~Detection~Probability~(p[sim]==0.3)))
   
   ggsave(filename = paste0(sup_plot_names[i], ".tiff"),
          plot = sup_plot,
@@ -1065,7 +931,8 @@ ggsave(filename = "sp_variability_grap_abs.tiff",
        dpi = 1000)
 
 dtaS[, label := case_when(grid_range == "4%" & n_visits == 6 ~ "Consistent Effort", 
-                          grid_range == "0% - 100%" & n_visits == 6 ~ "Variable Effort")]
+                          grid_range == "0% - 100%" & 
+                            n_visits == 6 ~ "Variable Effort")]
 
 ef_abs_plot <- ggplot(data = subset(dtaS, 
                      detP == 0.8 & 
@@ -1153,8 +1020,9 @@ for (i in 1:length(sim_name)) {
     unique()
   
   if (length(pop_grid) != 1) {
-    stop(paste0("Grid sizes of populations not the same, please check replicates for ", 
-                sim_name[[i]]))
+    stop(paste0(
+      "Grid sizes of populations not the same, please check replicates for ", 
+      sim_name[[i]]))
   }
   
   grid_total[sim == sim_name[[i]], total_cells := pop_grid]
@@ -1174,7 +1042,8 @@ dta_dt <- rbindlist(dta) %>%
 # Add a column that will just help with some graphing and formatting
 dta_dt[, grid_range := ifelse(grid_min == grid_max, 
                               paste0(round(100 * (n_grid/total_cells)), "%"),
-                              paste0((100 * grid_min), "% - ", (100 * grid_max), "%"))]
+                              paste0((100 * grid_min), "% - ", 
+                                     (100 * grid_max), "%"))]
 
 dta_dt[, grid_range := factor(grid_range, 
                               levels = c("0% - 100%", "4%", "2.5% - 100%", "6%", 
@@ -1188,10 +1057,12 @@ dta_dt[, grid_range := factor(grid_range,
                                        substring(sim, 1, 1) == "U" ~ 100), 
                     lmda = case_when(substring(sim, 2, 2) == "M" ~ 0.977,
                                      substring(sim, 2, 2) == "R" ~ 0.933),
-                    alpha_val = case_when(grid_range == "0% - 100%" | grid_range == "4%" ~ "Low", 
-                                          grid_range == "2.5% - 100%" | grid_range == "6%" ~ "Moderate", 
-                                          grid_range == "5% - 100%" | grid_range == "9%" ~ "High"))
-             ][, alpha_val := factor(alpha_val, levels = c("Low", "Moderate", "High"))]
+                    alpha_val = case_when(
+                      grid_range == "0% - 100%" | grid_range == "4%" ~ "Low", 
+                      grid_range == "2.5% - 100%" | grid_range == "6%" ~ "Moderate", 
+                      grid_range == "5% - 100%" | grid_range == "9%" ~ "High"))
+             ][, alpha_val := factor(alpha_val, levels = c("Low", "Moderate", 
+                                                           "High"))]
 
 hline_data <- dta_dt[, .(N_init, lmda, trend)
                      ][, trend_avg := median(trend, na.rm = TRUE), 
@@ -1337,13 +1208,16 @@ tpin_combos[!(psim == 0.8 & visits == 4),
 
 for (i in 1:nrow(tpin_combos)) {
   ggsave(filename = tpin_combos[i, file_name], 
-         plot = trend_tpin_fxn(visits = tpin_combos[i, visits],
-                               psim = tpin_combos[i, psim], 
-                               plot_title = paste0(tpin_combos[i, visits], 
-                                                   " Sampling Occasions per Year\n", 
-                                                   ifelse(tpin_combos[i, psim] == 0.8, 
-                                                          "High per Occasion Detection Probability, Psim = 0.8",
-                                                          "Low per Occasion Detection Probability, Psim = 0.3"))), 
+         plot = trend_tpin_fxn(
+           visits = tpin_combos[i, visits],
+           psim = tpin_combos[i, psim], 
+           plot_title = paste0(
+             tpin_combos[i, visits], 
+             " Sampling Occasions per Year\n", 
+             ifelse(
+               tpin_combos[i, psim] == 0.8, 
+               "High per Occasion Detection Probability, Psim = 0.8",
+               "Low per Occasion Detection Probability, Psim = 0.3"))), 
          path = plot_dir,
          width = 21.59, 
          height = 27.94, 
@@ -1420,7 +1294,8 @@ fwrite(CI_sum_manu,
 sp_labs <- paste0(sort(unique(dta_dt$loc_per))*100, "% Spatially Consistent")
 names(sp_labs) <- sort(unique(dta_dt$loc_per))
 
-land_labs <- paste0(round(sort(unique(dta_dt$landscape_per))*unique(dta_dt$total_cells)), " Cells")
+land_labs <- paste0(
+  round(sort(unique(dta_dt$landscape_per))*unique(dta_dt$total_cells)), " Cells")
 names(land_labs) <- sort(unique(dta_dt$landscape_per))
 
 dta_dt_long <- tidyr::pivot_longer(dta_dt, 
@@ -1538,18 +1413,20 @@ occ_tpin_plot_fxn <- function(psim = 0.8,
 
 psi_est_combos <- sim_dt[detP < 1, ]
 
-psi_est_combos[, ":="(sim_name = paste0(sim_name, "_new_params"),
-                      file_name = paste0("Psi_Est_Spatial_Vari_", 
-                                         sim_name, 
-                                         "_V", n_visits, 
-                                         "_psim", gsub("\\.", "", detP), 
-                                         "0.tiff"), 
-                      plot_title = paste0(sim_name, ": ", full), 
-                      plot_subtitle = paste0(n_visits, 
-                                            " Sampling Occasions per Year; ", 
-                                            ifelse(detP == 0.8, 
-                                                   "High per Occasion Detection Probability, Psim = 0.8",
-                                                   "Low per Occasion Detection Probability, Psim = 0.3")))]
+psi_est_combos[, ":="(
+  sim_name = paste0(sim_name, "_new_params"),
+  file_name = paste0("Psi_Est_Spatial_Vari_", 
+                     sim_name, 
+                     "_V", n_visits, 
+                     "_psim", gsub("\\.", "", detP), 
+                     "0.tiff"), 
+  plot_title = paste0(sim_name, ": ", full), 
+  plot_subtitle = paste0(
+    n_visits, 
+    " Sampling Occasions per Year; ", 
+    ifelse(detP == 0.8, 
+           "High per Occasion Detection Probability, Psim = 0.8",
+           "Low per Occasion Detection Probability, Psim = 0.3")))]
 
 if (!dir.exists(paste0(plot_dir, "/Psi_Est_Plots"))) {
   dir.create(paste0(plot_dir, "/Psi_Est_Plots"))
@@ -1557,11 +1434,12 @@ if (!dir.exists(paste0(plot_dir, "/Psi_Est_Plots"))) {
   
 for (i in 1:nrow(psi_est_combos)) {
   ggsave(filename = psi_est_combos[i, file_name], 
-         plot = occ_tpin_plot_fxn(psim = psi_est_combos[i, detP],
-                                  visits = psi_est_combos[i, n_visits],
-                                  sim_fil = paste0(psi_est_combos[i, sim_name_org], "_new_params"), 
-                                  title = psi_est_combos[i, plot_title],
-                                  subtitle = psi_est_combos[i, plot_subtitle]), 
+         plot = occ_tpin_plot_fxn(
+           psim = psi_est_combos[i, detP],
+           visits = psi_est_combos[i, n_visits],
+           sim_fil = paste0(psi_est_combos[i, sim_name_org], "_new_params"), 
+           title = psi_est_combos[i, plot_title],
+           subtitle = psi_est_combos[i, plot_subtitle]), 
          path = paste0(plot_dir, "/Psi_Est_Plots"),
          width = 21.59, 
          height = 27.94, 
@@ -1773,10 +1651,14 @@ full_n_dt[Year == 0 | Year == 10,
             sd_psi_asy = sd(truePsi_Asymptotic)), 
           by = c("sim", "Year")]
 
-full_n_dt[, .(delta_psi_pix = (truePsi_Pixel[Year == 0] - truePsi_Pixel[Year == 10])/truePsi_Pixel[Year == 0],
-              delta_psi_cmv = (truePsi_MaxVisits[Year == 0] - truePsi_MaxVisits[Year == 10])/truePsi_MaxVisits[Year == 0],
-              delta_psi_asy = (truePsi_Asymptotic[Year == 0] - truePsi_Asymptotic[Year == 10])/truePsi_Asymptotic[Year == 0]), 
-          by = c("sim", "rn")
+full_n_dt[, .(
+  delta_psi_pix = (
+    truePsi_Pixel[Year == 0] - truePsi_Pixel[Year == 10])/truePsi_Pixel[Year == 0],
+  delta_psi_cmv = (
+    truePsi_MaxVisits[Year == 0] - truePsi_MaxVisits[Year == 10])/truePsi_MaxVisits[Year == 0],
+  delta_psi_asy = (
+    truePsi_Asymptotic[Year == 0] - truePsi_Asymptotic[Year == 10])/truePsi_Asymptotic[Year == 0]), 
+  by = c("sim", "rn")
           ][, .(mean_delta_psi_pix = mean(delta_psi_pix), 
                 sd_delta_psi_pix = sd(delta_psi_pix),
                 mean_delta_psi_cmv = mean(delta_psi_cmv), 
@@ -1860,9 +1742,10 @@ occ_dt_fxn <- function(enc_dt) {
   return(occ_dt)
 }
 
-occ_dt_lst <- pbapply::pblapply(enc_dt_lst[grep("sp_percent_05/encounter_histories/100detP_366|sp_percent_100/encounter_histories/100detP_2318", 
-                                                names(enc_dt_lst))], 
-                                occ_dt_fxn)
+occ_dt_lst <- pbapply::pblapply(
+  enc_dt_lst[grep("sp_percent_05/encounter_histories/100detP_366|sp_percent_100/encounter_histories/100detP_2318", 
+                  names(enc_dt_lst))], 
+  occ_dt_fxn)
 
 unmark_results_dt <- rbindlist(occ_dt_lst, 
                                idcol = "file")
@@ -2032,13 +1915,15 @@ ggplot(data = subset(dta_dt_long,
                                  landscape_per = land_labs)) +
   theme(legend.position = "none")
 ################################################################################
-samp_mats <- list.files(pattern = "80detP_610cells_4visits.txt", 
-                        path = paste0(output_folder, "/RRD_low_samp_cutoff/output/nrange_v3456_d3080100_mod04_variable_sampling_matrices"),
-                        recursive = TRUE, 
-                        full.names = TRUE) %>% 
+samp_mats <- list.files(
+  pattern = "80detP_610cells_4visits.txt", 
+  path = paste0(
+    output_folder, "/RRD_low_samp_cutoff/output/nrange_v3456_d3080100_mod04_variable_sampling_matrices"),
+  recursive = TRUE, 
+  full.names = TRUE) %>% 
   grep("sp_percent_95/", ., value = TRUE) %>% 
   lapply(read.table)
-
+o
 
 
 

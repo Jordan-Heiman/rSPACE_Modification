@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-20
 
 ## Function purpose: Creates a sampling grid layer
@@ -27,7 +27,7 @@
 #     Map used to filter the raster provided
 # reNumber:
 #     Default: TRUE; A TRUE/FALSE logical operator indicating whether or not to
-#     renumber the grid cells after they are created so that cells are number
+#     renumber the grid cells after they are created so that cells are numbered
 #     sequentially, skipping any cells that are not considered as surveyed
 
 ################################# Output #######################################
@@ -51,8 +51,8 @@ create_grid <- function(map,
     gridLayer <- make_grid(map,
                            gridsize = pList$grid_size)
 
-    # Then check that each grid cell the cutoff habitat values based on the
-    # values of all the pixels in the cell using the filter_by_habitat function
+    # Then check that each grid cell is greater then the cutoff habitat value 
+    # based on the values of all the pixels in the cell using the filter_by_habitat function
     gridLayer <- filter_by_habitat(gridLayer,
                                    map,
                                    sample.cutoff = pList$sample.cutoff,
