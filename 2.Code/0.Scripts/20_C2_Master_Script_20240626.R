@@ -1,29 +1,3 @@
-
-
-################################################################################
-#   1.0 Option to create replicates                                         ####
-
-    # Use the updated `rSPACE` function to create population and encounter history
-    # replicates for the provided parameters. Suggest to just create one 
-    # replicate first which will automatically save the population maps to 
-    # ensure things are running smoothly. 
-    create_replicates(n_runs = reps,
-                      map = rast,
-                      Parameters = params,
-                      folder.dir = output_folder,
-                      run.label = sim_name,
-                      base.name = paste0(sim_name, "_"),
-                      filter.map = NULL,
-                      printN = 1,
-                      saveParameters = 1,
-                      saveGrid = 0,
-                      skipConfirm = T, # Not the default selection
-                      add = T,
-                      overwrite = F, 
-                      showSteps = ifelse(reps == 1, TRUE, FALSE))
-  
-
-
 #   2.0 Option to test replicates                                           ####
 # Test the power of replicates that were created by the create replicate section
 # above. This can be run on its own if replicates have been previously created.

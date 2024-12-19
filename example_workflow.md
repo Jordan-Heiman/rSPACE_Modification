@@ -76,7 +76,9 @@ map[map < 0] <- 0
 To begin a simulated population must first be created using the create
 replicates function. This function uses a series of parameters to create
 a spatially explicit population and then simulate perfect sampling of
-that population using an array of grid cells of a specified size.
+that population using an array of grid cells of a specified size. This
+results in creating encounter histories for each replicate for a set
+number of years with perfect detection probability.
 
 The first argument is n_runs, which represents the number of population
 replicates to create. for brevity of this example we create 10 replicate
@@ -111,6 +113,12 @@ Parameters <- list(
   N = 50, 
   # Population growth rate
   lmda = 0.933, 
+  # [Optional] The population trend type, either "abundance-exponential" (Default) 
+  # or "abundance-linear". Under abundance-exponential, the population 
+  # experiences exponential growth with the same value of lambda every year. 
+  # Under abundance-linear, the population experiences and overall growth rate 
+  # of the above lambda value between year 1 and the last year of the simulation. 
+  trendtype = "abundance-exponential",
   # Number of years to simulate
   n_yrs = 10, 
   # Proportion of each type of individual (in this case 2 types, females [60% of
@@ -141,9 +149,9 @@ Parameters <- list(
   # Maximum number of visits to a grid cell per year to simulated (number of 
   # visits can be subset to smaller values during analysis process)
   n_visits = 6,
-  # Whether or not activity centers should be weighted based on the underlying 
-  # raster values. Setting this to TRUE can take a lot of processing power 
-  # depending on the size of the focal area. 
+  # Whether or not activity centers and  which individuals are removed should be
+  # weighted based on the underlying raster values. Setting this to TRUE can 
+  # take a lot of processing power depending on the size of the focal area. 
   wghts = FALSE, 
   # The class of raster that was read in above, this can be a spatRaster or 
   # Rast depening on the function/package that was used
@@ -173,10 +181,12 @@ base.name <- paste0(run.label, "_")
 Next is an optional argument for a second raster that can be used to
 filter the provided habitat/probability of use layer for the species of
 interest. This will be set to NULL for this example. If a filter map is
-provided, a cut.off value for the filter map should be added to the
-Parameter list (named filter.cutoff). If no filter cutoff value is
-provided a default of 0.95 will be used if all values in the filter map
-are $\le$ 1.
+provided, the filter map must be a raster of 0s and 1s with 1 indicating
+pixels to include in the simulation. A cut off value for the filter map
+should be added to the Parameter list (named filter.cutoff). The filter
+cutoff refers to the minimum proportion of the pixels within a grid cell
+that equal 1 in order for it to be sampled. If no filter cutoff value is
+provided a default of 0.95 will be used.
 
 ``` r
 filter.map <- NULL
@@ -214,12 +224,12 @@ add <- FALSE
 overwrite <- TRUE
 
 # A TRUE/FALSE operator to indicate whether or not to display simulation maps 
-# for each simulated year in the Plots window as they are created. If creating 
-# more than one replicate it is recommended to set this to FALSE as it 
-# drastically slows the processing time. In practice a single replicate can be 
-# created with showSteps set to TRUE in order to check the settings then more 
-# replicates can be created by reading in the save parameters and using the same 
-# run.label with add = TRUE and overwrite = FALSE.
+# for each simulated year in the Plots window as they are created and save them
+# to the output folder. If creating more than one replicate it is recommended to 
+# set this to FALSE as it drastically slows the processing time. In practice a 
+# single replicate can be created with showSteps set to TRUE in order to check 
+# the settings then more replicates can be created by reading in the save 
+# parameters and using the same run.label with add = TRUE and overwrite = FALSE.
 showSteps <- ifelse(n_runs == 1, TRUE, FALSE)
 ```
 
@@ -249,10 +259,6 @@ create_replicates(n_runs = n_runs,
 
     ## Restarting C:/Users/JordanHeiman/Box/Jordan_Workspace/Jordan_Masters/3.Writing_and_Presentations/3.Thesis/Power_Manuscript/rSPACE_Modification/Outputs/Wolverine_Example_Sim/output/N_final.txt
 
-    ## Warning in file.remove(printN): cannot remove file
-    ## 'C:/Users/JordanHeiman/Box/Jordan_Workspace/Jordan_Masters/3.Writing_and_Presentations/3.Thesis/Power_Manuscript/rSPACE_Modification/Outputs/Wolverine_Example_Sim/output/N_final.txt',
-    ## reason 'No such file or directory'
-
     ## n 1
 
     ## Warning in write.table(PopulationTotals, file = printN, row.names = F,
@@ -277,6 +283,75 @@ create_replicates(n_runs = n_runs,
     ##  [5] "Wolverine_Example_Sim_0005.txt" "Wolverine_Example_Sim_0006.txt"
     ##  [7] "Wolverine_Example_Sim_0007.txt" "Wolverine_Example_Sim_0008.txt"
     ##  [9] "Wolverine_Example_Sim_0009.txt" "Wolverine_Example_Sim_0010.txt"
+
+As the function runs it will print the replicate number that it is
+working on, this is referred to as the run number. This will be followed
+by a progress bar for the replicate itself and one for the overall
+simulation of all replicates. Once complete, the location of the
+outputted files will be printed and the names fo the simulation files.
+
+#### Test Replicates
+
+Once the replicates have been created the `test_replicates` function is
+used to subset the encounter histories to simulate sampling the
+population.
+
+The first argument of this function identifies where the replicate
+encounter histories and other associated files can be found. This should
+be a folder within the `folder.dir`, named the same as the `run.label`.
+
+``` r
+folder <- paste0(folder.dir, "/", run.label)
+```
+
+Followed by a set of parameters in a similar format to those provided to
+the `create_replicates` function. These first few are from the original
+version of rSPACE.
+
+``` r
+# The number of visits to simulate to each grid cell each year. If simulating
+# more than one number of visits, these should be in a vector of integers.
+Parameters$n_visit_test <- c(3, 4, 5, 6)
+# The detection probability to simulate for each visit to each grid cell, as a 
+# decimal value. If simulating more than one detection probability, these should
+# be in a vector of numeric values. 
+Parameters$detP_test <- c(0.8, 0.9)
+# The proportion of the total number of grid cells to simulate sampling. This 
+# value will only be used for some sampling strategies but should always be
+# provided. The sampling strategies that use these values are the "Annual",
+# "Biannual", "Sample Matrix" and "Spatially Inconsistent". If simulating more
+# than one proportion of the total cells, this should be a vector of numeric
+# values. 
+Parameters$grid_sample
+```
+
+    ## NULL
+
+Next, one or more sampling frameworks must be chosen. There are 6 to
+choose from in the updated version of rSPACE, with the first 3 being
+original.
+
+                    Parameters = params,
+                    SubPop = NULL,
+                    sample_matrix = NULL,
+                    xxx = 1,
+                    max_xxx = 1,
+                    min_xxx = 1,
+                    base.name = paste0(sim_name, "_"),
+                    results.file = results_file,
+                    n_runs = NULL,
+                    FPCind = TRUE,
+                    skipConfirm = T,
+                    overwrite = overwrite,
+                    add = !overwrite,
+                    randomize = T
+
+extra parameters - create replicates: -effective sampling area (measured
+in sqkm)? (how to incorporate when selecting new cells every year,
+currently would be the same effective area in each cell?)
+
+-repeat.groups? looks like for repeating an individual type, not sure
+why you would want that?
 
 # References
 

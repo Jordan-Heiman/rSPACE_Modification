@@ -90,7 +90,7 @@ create_replicates <- function(n_runs,
                               overwrite = T,
                               showSteps = F){
   
-  list.files("2.Code/1.Functions/22_create_replicates",
+  list.files("2.Code/1.Functions/02_create_replicates",
              full.names = TRUE) %>% 
     lapply(., source) %>% 
     invisible()

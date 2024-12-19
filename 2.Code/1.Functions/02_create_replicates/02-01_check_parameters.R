@@ -42,7 +42,7 @@ check_parameters <- function(pList,
   if (is.null(pList$trendtype)) {
     pList$trendtype <- "abundance-exponential"
   }
-  if (!(pList$trendtype %in% c("abundance-exponential", "abundance-linear")) {
+  if (!(pList$trendtype %in% c("abundance-exponential", "abundance-linear"))) {
     stop("Trend type must be either 'abundance-exponential' or 'abundance-linear'.")
   }
   if (is.null(pList$maxDistQ)) {

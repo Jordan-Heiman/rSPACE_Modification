@@ -83,7 +83,7 @@ map[map < 0] <- 0
 
 #### Create Replicates
 
-To begin a simulated population must first be created using the create replicates function. This function uses a series of parameters to create a spatially explicit population and then simulate perfect sampling of that population using an array of grid cells of a specified size. 
+To begin a simulated population must first be created using the create replicates function. This function uses a series of parameters to create a spatially explicit population and then simulate perfect sampling of that population using an array of grid cells of a specified size. This results in creating encounter histories for each replicate for a set number of years with perfect detection probability.
 
 The first argument is n_runs, which represents the number of population replicates to create. for brevity of this example we create 10 replicate but recommend using 100 or more for more precise results. 
 
@@ -228,11 +228,98 @@ create_replicates(n_runs = n_runs,
                   showSteps = showSteps)
 ```
 
-As the function runs it will print the replicate number that it is working on, this is referred to as the run number. This will be followed by a progress bar for the replicate itself and one for the overall simulation of all replicates. 
+As the function runs it will print the replicate number that it is working on, this is referred to as the run number. This will be followed by a progress bar for the replicate itself and one for the overall simulation of all replicates. Once complete, the location of the outputted files will be printed and the names fo the simulation files.
+
+#### Test Replicates
+
+Once the replicates have been created the `test_replicates` function is used to subset the encounter histories to simulate sampling the population. 
+
+The first argument of this function identifies where the replicate encounter histories and other associated files can be found. This should be a folder within the `folder.dir`, named the same as the `run.label`. 
+
+```{r test_reps folder}
+folder <- paste0(folder.dir, "/", run.label)
+```
+
+Followed by a set of parameters in a similar format to those provided to the `create_replicates` function. These first few are from the original version of rSPACE. 
+
+```{r test_reps parameters}
+# The number of visits to simulate to each grid cell each year. If simulating
+# more than one number of visits, these should be in a vector of integers.
+Parameters$n_visit_test <- c(3, 4, 5, 6)
+# The detection probability to simulate for each visit to each grid cell, as a 
+# decimal value. If simulating more than one detection probability, these should
+# be in a vector of numeric values. 
+Parameters$detP_test <- c(0.8, 0.9)
+# The proportion of the total number of grid cells to simulate sampling. This 
+# value will only be used for some sampling strategies but should always be
+# provided. The sampling strategies that use these values are the "Annual",
+# "Biannual", "Sample Matrix" and "Spatially Inconsistent". If simulating more
+# than one proportion of the total cells, this should be a vector of numeric
+# values. 
+Parameters$grid_sample
+```
+
+Next, one or more sampling frameworks must be chosen. There are 6 to choose from in the updated version of rSPACE, with the first 3 being original. 
+
+```{r sampling framework options, include = FALSE}
+
+ model_tbl <- data.frame(
+   Name = c("Annual", "Biannual", "Sample Matrix", "Spatially Inconsistent",
+            "Fully Variable - Uniform", "Fully Variable - Beta"),
+   Number = c(0, 1, 2, 4, 5, 6),  
+   Description = c(paste0("Sampling occurs in the same cells every year with no ",
+                          "changes in the amount of sampling."),
+                   paste0("Sampling occurs in the same cells every other year ",
+                          "with no changes in the amount of sampling."), 
+                   paste0("Sampling occurs in each year according to a sampling ",
+                          "matrix that is provided to the test_replicates ",
+                          "function."), 
+                   paste0("A consistent amount of sampling occurs every year ",
+                          "but different cells are randomly selected to be ",
+                          "sampled each year. A proportion of sampled cells can ",
+                          "be set to be spatially consistent through all years, ",
+                          "i.e. a proportion of cells can be set to be sampled ",
+                          "in all years, these cells will be randomly selected ",
+                          "at the begining of sampling."), 
+                   paste0("A different proportion of the landscape is sampled ",
+                          "every year with the amount of sampling selected from ",
+                          "a uniform distribution described in other parameters. ",
+                          "The cells sampled are randomly selected each year as ",
+                          "with the spatially inconsistent sampling."), 
+                   paste0("A different proportion of the landscape is sampled ",
+                          "every year with the amount of sampling selected from ",
+                          "a beta distribution described in other parameters. ",
+                          "The cells sampled are randomly selected each year as ",
+                          "with the spatially inconsistent sampling.")))
+
+knitr::kable(model_tbl, 
+             align = "c")
+
+```
 
 
 
-extra parameters: 
+                    Parameters = params,
+                    SubPop = NULL,
+                    sample_matrix = NULL,
+                    xxx = 1,
+                    max_xxx = 1,
+                    min_xxx = 1,
+                    base.name = paste0(sim_name, "_"),
+                    results.file = results_file,
+                    n_runs = NULL,
+                    FPCind = TRUE,
+                    skipConfirm = T,
+                    overwrite = overwrite,
+                    add = !overwrite,
+                    randomize = T
+
+
+
+
+
+
+extra parameters - create replicates: 
   -effective sampling area (measured in sqkm)? (how to incorporate when selecting new cells every year, currently would be the same effective area in each cell?)
 
   -repeat.groups? looks like for repeating an individual type, not sure why you would want that? 

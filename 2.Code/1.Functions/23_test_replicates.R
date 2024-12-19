@@ -1,13 +1,17 @@
 ### Project
-### Jordan Heiman [others as needed]
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-24
 
-## Function purpose: 
+## Function purpose: Simulates sampling on replicates that were created by the 
+#                    create_replicates function previously.
 
 #################################### Intro #####################################
 
-# Name: 
-# Description:  
+# Name: test_replicates
+# Description:  Using the perfect detection encounter histories created by the 
+#               create_replicates function, this function will simulate sampling 
+#               replicate populations to assess statistical power of various 
+#               sampling designs. 
 
 ################################## Creation ####################################
 
