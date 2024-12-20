@@ -21,29 +21,21 @@ Ellis](https://github.com/mmellis/rSPACE)
 
 Script modifications by: Jordan Heiman
 
-Last updated: 2024-10-18
+Last updated: 2024-12-20
 
 *This workflow is still in development, however, functions within this repo work as is and should be well commented*
 
 ### Introduction
 
-These script files were originally designed to provide a framework to
-analyze the statistical power of wildlife occupancy monitoring designs
-for detecting trends in abundance of a population. These modified
-scripts expand the capability of the framework to analyze a wider range
-of sampling designs including those where sampling locations and effort
-vary during every sampling cycle (i.e. season or year).
+These script files were originally designed to provide a framework to analyze the statistical power of wildlife occupancy monitoring designs for detecting trends in abundance of a population. These modified scripts expand the capability of the framework to analyze a wider range of sampling designs including those where sampling locations and effort vary during every sampling cycle (i.e. season or year).
 
-These scripts are not currently setup as a package format but this
-repository can be cloned and setup as a local R project. This example
-workflow follows the simulations done by Heiman et al. (in review).
+These scripts are not currently setup as a package format but this repository can be cloned and setup as a local R project. This example workflow follows the simulations done by @heiman_2024.
 
 ### Library / Functions / Data
 
 #### Library
 
-Begin by installing and loading the packages that are needed for the
-workflow.
+Begin by installing and loading the packages that are needed for the workflow.
 
 ```{r package load, message = FALSE}
 source("2.Code/1.Functions/00_package_loading.R")
@@ -52,9 +44,7 @@ source("2.Code/1.Functions/00_package_loading.R")
 
 #### Functions
 
-Source all the functions that are needed for running the modified rSPACE
-analysis. As well as sourcing one file with C++ functions that are used
-for efficiency.
+Source all the functions that are needed for running the modified rSPACE analysis. As well as sourcing one file with C++ functions that are used for efficiency.
 
 ```{r function sourcing, message = FALSE}
 list.files("2.Code/1.Functions/",
@@ -259,9 +249,9 @@ Parameters$detP_test <- c(0.8, 0.9)
 Parameters$grid_sample
 ```
 
-Next, one or more sampling frameworks must be chosen. There are 6 to choose from in the updated version of rSPACE, with the first 3 being original. 
+Next, one or more sampling frameworks must be chosen. There are 6 to choose from in the updated version of rSPACE, with the first 3 being original to the rSPACE package. 
 
-```{r sampling framework options, include = FALSE}
+```{r sampling framework options, echo = FALSE}
 
  model_tbl <- data.frame(
    Name = c("Annual", "Biannual", "Sample Matrix", "Spatially Inconsistent",
@@ -297,6 +287,38 @@ knitr::kable(model_tbl,
 
 ```
 
+To select a sampling framework, the number associated with it is provided as a vector of integers in the list of `Parameters`. If any sampling frameworks besides the fully variable options are selected, more than one framework can be tested at once. However, it's recommended to run the fully variable sampling frameworks separate from other sampling frameworks. 
+
+```{r alt_model parameters}
+Parameters$alt_model <- c(0, 1, 2, 4)
+```
+
+##### Sampling Matrix Option
+
+If the sampling matrix framework is chosen to be tested, a sampling matrix needs to be provided to the `test_replicates` function. This is a matrix where each row represents a grid cell and each column represents a year of sampling, with a 1 or a 0 value indicating whether that corresponding grid cell was sampled (1) or not sampled (0) during the corresponding year. This is provided as a separate argument to the function, outside of the `Parameters` list.
+
+```{r sampling matrix}
+# The number of grid cells can be determined from the number of rows in one of 
+# the simulation output files
+grid_count <- local({
+  sim_files <- list.files(path = folder, 
+                          pattern = ".txt$", 
+                          full.names = TRUE)
+  
+  read.csv(sim_files[[1]], 
+           header = FALSE) %>% 
+    nrow()
+})
+
+sampling_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 1, prob = 0.5), 
+                          nrow = grid_count,
+                          ncol = Parameters$n_yrs)
+
+```
+
+##### Spatially Inconsistent Option
+
+If a spatially inconsistent sampling framework is chosen, 
 
 
                     Parameters = params,
@@ -317,7 +339,8 @@ knitr::kable(model_tbl,
 
 
 
-
+test reps:
+  - alt model 3?
 
 extra parameters - create replicates: 
   -effective sampling area (measured in sqkm)? (how to incorporate when selecting new cells every year, currently would be the same effective area in each cell?)

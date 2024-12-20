@@ -70,44 +70,6 @@ if (svDialogs::dlg_message("Test replicates?",
       !file.exists(paste0(output_folder, "/", sim_name, 
                           "/output/Parameters_testing.Rdata"))) {
 
-    # Load the simulation parameters only
-    params <- local({load(paste0(output_folder, "/", sim_name, 
-                                 "/output/Parameters.Rdata"))
-      Parameters})
-    
-    # Have the user determine the number of visits to test
-    params$n_visit_test <- svDialogs::dlg_list(
-      1:params$n_visits,
-      multiple = TRUE, 
-      title = "Number of visits to test")$res %>% 
-      as.integer()
-    
-    # Have the user determine the detection probabilities to test
-    params$detP_test <- svDialogs::dlg_input(
-      message = "Detection prob to test")$res %>% 
-      strsplit(", ") %>% 
-      unlist() %>% 
-      as.numeric()
-    
-    # Have the user determine the percentages of the cells to test (consistent 
-    # sampling as in the original rSPACE package) to test
-    params$grid_sample <- svDialogs::dlg_list(
-      seq(.05, 1, 0.05),
-      preselect = seq(.05, .95, by = .1),
-      multiple = TRUE, 
-      title = "Percent of cells to test")$res %>% 
-      as.numeric()
-    
-    # Determine the sampling strategy to test. Fully variable sampling must be
-    # tested on its own all the others can be tested in the same run. Need to 
-    # build in a error for that for wider spread use
-    model <- svDialogs::dlg_list(model_tbl$name,
-                                 preselect = "Annual",
-                                 title = "Model to test",
-                                 multiple = TRUE)$res
-    
-    # Pull the sampling model number from the table created earlier
-    params$alt_model <- model_tbl[name %in% model, number]
     
     # If spatial inconsistency is selected, the user needs to provide the 
     # percentages of cells that should be kept consistent each season. 

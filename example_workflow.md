@@ -8,7 +8,7 @@ Ellis](https://github.com/mmellis/rSPACE)
 
 Script modifications by: Jordan Heiman
 
-Last updated: 2024-10-18
+Last updated: 2024-12-20
 
 *This workflow is still in development, however, functions within this
 repo work as is and should be well commented*
@@ -24,7 +24,7 @@ vary during every sampling cycle (i.e. season or year).
 
 These scripts are not currently setup as a package format but this
 repository can be cloned and setup as a local R project. This example
-workflow follows the simulations done by Heiman et al. (in review).
+workflow follows the simulations done by Heiman et al. (2024).
 
 ### Library / Functions / Data
 
@@ -329,7 +329,59 @@ Parameters$grid_sample
 
 Next, one or more sampling frameworks must be chosen. There are 6 to
 choose from in the updated version of rSPACE, with the first 3 being
-original.
+original to the rSPACE package.
+
+|           Name           | Number |                                                                                                                                                                   Description                                                                                                                                                                    |
+|:------------------------:|:------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|          Annual          |   0    |                                                                                                                             Sampling occurs in the same cells every year with no changes in the amount of sampling.                                                                                                                              |
+|         Biannual         |   1    |                                                                                                                          Sampling occurs in the same cells every other year with no changes in the amount of sampling.                                                                                                                           |
+|      Sample Matrix       |   2    |                                                                                                                  Sampling occurs in each year according to a sampling matrix that is provided to the test_replicates function.                                                                                                                   |
+|  Spatially Inconsistent  |   4    | A consistent amount of sampling occurs every year but different cells are randomly selected to be sampled each year. A proportion of sampled cells can be set to be spatially consistent through all years, i.e. a proportion of cells can be set to be sampled in all years, these cells will be randomly selected at the begining of sampling. |
+| Fully Variable - Uniform |   5    |                                           A different proportion of the landscape is sampled every year with the amount of sampling selected from a uniform distribution described in other parameters. The cells sampled are randomly selected each year as with the spatially inconsistent sampling.                                           |
+|  Fully Variable - Beta   |   6    |                                            A different proportion of the landscape is sampled every year with the amount of sampling selected from a beta distribution described in other parameters. The cells sampled are randomly selected each year as with the spatially inconsistent sampling.                                             |
+
+To select a sampling framework, the number associated with it is
+provided as a vector of integers in the list of `Parameters`. If any
+sampling frameworks besides the fully variable options are selected,
+more than one framework can be tested at once. However, it’s recommended
+to run the fully variable sampling frameworks separate from other
+sampling frameworks.
+
+``` r
+Parameters$alt_model <- c(0, 1, 2, 4)
+```
+
+##### Sampling Matrix Option
+
+If the sampling matrix framework is chosen to be tested, a sampling
+matrix needs to be provided to the `test_replicates` function. This is a
+matrix where each row represents a grid cell and each column represents
+a year of sampling, with a 1 or a 0 value indicating whether that
+corresponding grid cell was sampled (1) or not sampled (0) during the
+corresponding year. This is provided as a separate argument to the
+function, outside of the `Parameters` list.
+
+``` r
+# The number of grid cells can be determined from the number of rows in one of 
+# the simulation output files
+grid_count <- local({
+  sim_files <- list.files(path = folder, 
+                          pattern = ".txt$", 
+                          full.names = TRUE)
+  
+  read.csv(sim_files[[1]], 
+           header = FALSE) %>% 
+    nrow()
+})
+
+sampling_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 1, prob = 0.5), 
+                          nrow = grid_count,
+                          ncol = Parameters$n_yrs)
+```
+
+##### Spatially Inconsistent Option
+
+If a spatially inconsistent sampling framework is chosen,
 
                     Parameters = params,
                     SubPop = NULL,
@@ -345,6 +397,8 @@ original.
                     overwrite = overwrite,
                     add = !overwrite,
                     randomize = T
+
+test reps: - alt model 3?
 
 extra parameters - create replicates: -effective sampling area (measured
 in sqkm)? (how to incorporate when selecting new cells every year,
@@ -365,6 +419,15 @@ Schwartz. 2015. “<span class="nocase">rSPACE</span>: Spatially Based
 Power Analysis for Conservation and Ecology.” Edited by Timothée Poisot.
 *Methods in Ecology and Evolution* 6 (5): 621–25.
 <https://doi.org/10.1111/2041-210X.12369>.
+
+</div>
+
+<div id="ref-heiman_2024" class="csl-entry">
+
+Heiman, J. L., Jody M. Tucker, Sarah N. Sells, Joshua J. Millspaugh, and
+Michael K. Schwartz. 2024. “Leveraging Local Wildlife Surveys for Robust
+Occupancy Trend Estimation.” *Ecological Indicators* 169 (169).
+<https://doi.org/10.1016/j.ecolind.2024.112863>.
 
 </div>
 
