@@ -349,12 +349,14 @@ The next few arguments handle some of the setting options for the creating the s
 # band
 SubPop <- NULL
 
-# These xxx values are used
+# These xxx values are used to subset the replicates in a different way. An 
+# index vector will be created:
+#   index <- rep(min_xxx:max_xxx, length.out = n_runs)  
+# and then the replicates will be subset as:
+#   n_runs[index == xxx]
 xxx <- 1
 max_xxx <- 1
 min_xxx <- 1
-
-
 
 # The number of replicates used to test the sampling frameworks can be limited 
 # by providing a value to the `n_runs` argument. If none is provided, then all 
@@ -380,8 +382,8 @@ add <- FALSE
 # simulation results
 overwrite <- TRUE
 
-
-randomize <- T
+# Indicates whether or not to put the grid cells in a random order for sampling
+randomize <- TRUE
 ```
 
 ### 4.1 Sampling Matrix Option
@@ -471,25 +473,25 @@ if (6 %in% Parameters$alt_model) {
 Now the function can be run:
 
 ```{r test_reps}
-test_replicates(folder = folder,
-                Parameters = Parameters,
-                SubPop = SubPop,
-                sample_matrix = sample_matrix,
-                xxx = xxx,
-                max_xxx = max_xxx,
-                min_xxx = min_xxx,
-                base.name = base.name,
-                results.file = results.file,
-                n_runs = n_runs,
-                FPCind = FPCind,
-                skipConfirm = skipConfirm,
-                overwrite = overwrite,
-                add = add,
-                randomize = randomize)
+# test_replicates(folder = folder,
+#                 Parameters = Parameters,
+#                 SubPop = SubPop,
+#                 sample_matrix = sample_matrix,
+#                 xxx = xxx,
+#                 max_xxx = max_xxx,
+#                 min_xxx = min_xxx,
+#                 base.name = base.name,
+#                 results.file = results.file,
+#                 n_runs = n_runs,
+#                 FPCind = FPCind,
+#                 skipConfirm = skipConfirm,
+#                 overwrite = overwrite,
+#                 add = add,
+#                 randomize = randomize)
 ```
                   
 
-
+Paused at line 372 in test_reps, remove randomize argument and just always randomize
 
 
 
@@ -499,7 +501,7 @@ test_replicates(folder = folder,
 :::
 
 
-# notes to self (mostly things I meant to fix a long time ago but do not affect functionality):
+###### notes to self (mostly things I meant to fix a long time ago but do not affect functionality):
 get_results:
   - look for other files w/o "sim_results"?
 
@@ -509,7 +511,6 @@ test reps:
   - check that grid_sample is ignored with alt models 5 and 6 (if so why is it still required?)
   - check that grid_min and grid_max is not required when alt_model is not 5
   - check that alpha, beta, and base are not required when alt_model is not 6
-  - ditto on xxx, min_xxx, and max_xxx
   - randomize argument? this should have been taken out?
 
 extra parameters - create replicates: 
