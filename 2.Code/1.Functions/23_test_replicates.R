@@ -11,7 +11,8 @@
 # Description:  Using the perfect detection encounter histories created by the 
 #               create_replicates function, this function will simulate sampling 
 #               replicate populations to assess statistical power of various 
-#               sampling designs. 
+#               sampling designs. This is done by subsetting the perfect 
+#               detection encounter histories in a number of ways.
 
 ################################## Creation ####################################
 
@@ -27,14 +28,15 @@
 #     results of the further simulations will be saved 
 # Parameters:
 #     List of parameters as created by the enter_parameters function or as 
-#     created manually and checked by the check_parameters function
+#     created manually and checked by the check_parameters function as well as 
+#     additional testing parameters. 
 # SubPop:
 #     Default: NULL; A raster with the sampling grid layer filtered to a 
 #     sub-region
-# sample_martrix:
-#     Default: NULL; Required to not be NULL if and irregular sampling model 
-#     will be tested; A matrix where each row represents a grid cell and each 
-#     column represents a year of sampling, each cell contains a 1 or a 0 value 
+# sample_matrix:
+#     Default: NULL; Required to not be NULL if an irregular sampling model will 
+#     be tested; A matrix where each row represents a grid cell and each column
+#     represents a year of sampling, each cell contains a 1 or a 0 value 
 #     indicating whether that corresponding grid cell was sampled (1) or not 
 #     sampled (0) during the corresponding year
 # xxx:
@@ -83,26 +85,25 @@
 ################################################################################
 ## Function
 
-test_replicates <- function(folder, # folder to save to
-                            Parameters, # normal parameters
-                            SubPop = NULL, #SubPop,
-                            sample_matrix = NULL, #sample_matrix,
-                            xxx = 1, # not sure the point of this
-                            max_xxx = 1,# not sure the point of this
-                            min_xxx = 1,# not sure the point of this
+test_replicates <- function(folder, 
+                            Parameters, 
+                            SubPop = NULL, 
+                            sample_matrix = NULL, 
+                            xxx = 1, 
+                            max_xxx = 1,
+                            min_xxx = 1,
                             base.name = "rSPACEx",
                             results.file = "sim_results.txt",
-                            n_runs = NULL, #n_runs,
-                            FPCind = TRUE, # finite population correction
-                            skipConfirm = F,
-                            overwrite = T,
-                            add = F,
-                            randomize = T){
+                            n_runs = NULL, 
+                            FPCind = TRUE, 
+                            skipConfirm = FALSE,
+                            overwrite = TRUE,
+                            add = FALSE,
+                            randomize = TRUE){
   
   # Source the function scripts needed for this function
-  list.files("./2.Code/2.Functions/23_test_replicates",
+  list.files("./2.Code/1.Functions/23_test_replicates",
              full.names = TRUE) %>% 
-    grep("CopyOf", ., value = TRUE, invert = TRUE) %>% 
     lapply(., source) %>% 
     invisible()
   
@@ -153,10 +154,10 @@ test_replicates <- function(folder, # folder to save to
       dir.create(samp_mat_folder)
       
     } else if (dir.exists(samp_mat_folder)) {
-      askConfirm <- ("" == readline(prompt = "\n Sampling matrices folder already exists, 
-  rerunning the analysis will rewrite these matrices
-  If you're ok with this, press ENTER to continue.
-  Typing anything else will exit.\n"))
+      askConfirm <- ("" == readline(prompt = "\n Sampling matrices folder 
+      already exists, rerunning the analysis will rewrite these matrices.
+      If you're ok with this, press ENTER to continue.
+      Typing anything else will exit.\n"))
       if (!askConfirm) { 
         message('Exiting function')
         return(0)
@@ -173,7 +174,8 @@ test_replicates <- function(folder, # folder to save to
   if (file.exists(results_file) & !overwrite & !add) {
     stop(paste0("'", 
                 results.file,
-                "' already exists; use overwrite = TRUE or add = TRUE or specify a new filename using results.file"))
+                "' already exists; use overwrite = TRUE or add = TRUE or ",
+                "specify a new filename using results.file"))
   }
   
   # If the results file does not already exist, set `add` to FALSE as there is 
@@ -187,17 +189,19 @@ test_replicates <- function(folder, # folder to save to
     
     # Print a message to the console warning the user that this may be a bad 
     # idea if the parameters of the simulations are different
-    message("Appending to previous results. If you've changed simulation parameters, this is a BAD IDEA!")
+    message(paste0("Appending to previous results. If you've changed ",
+                   "simulation parameters, this is a BAD IDEA!"))
     
     # Read in the existing simulation results file
-    sim_results <- read.table(results_file, header = T)
+    sim_results <- read.table(results_file, header = TRUE)
     
     # Create a data frame that contains the number of replicates from the 
     # simulation and if there is only 1, warn the user then change `add` to 
     # FALSE
     DF <- ddply(sim_results, .(rn), nrow)
     if (nrow(DF) == 1) {
-      message('Only one previous scenario (unknown completion); restarting results file')
+      message(paste0("Only one previous scenario (unknown completion); ",
+                     "restarting results file"))
       add <- FALSE
     }
     
@@ -208,19 +212,28 @@ test_replicates <- function(folder, # folder to save to
     # Set up an empty vector to populate
     drop.files <- c()
     
-    # Not sure yet here
-    if (length(DF) == 1) { # There weren't any results in the results file yet
+    # If there weren't any results in the results file yet...
+    if (length(DF) == 1) { 
+      # run testing on all replicates
       drop.files <- unique(paste(DF$rn))
     }
-    if (length(tab) > 2) { # The number of results for each run was different
-      stop('Inconsistent number of subsets in results; specify files to analyze using base.name argument')
+    
+    # If the number of results for each run was different...
+    if (length(tab) > 2) { 
+      # error out
+      stop(paste0("Inconsistent number of subsets in results; specify files to ",
+                  "analyze using base.name argument"))
     }
-    if (length(tab) == 2 | length(tab) == 1) { # At least one run did not fully complete testing Or testing was halted between runs
+    
+    # If at least one replicate did not fully complete testing, indicating 
+    # testing was halted between replicates
+    if (length(tab) == 2 | length(tab) == 1) { 
+      # Get the number of the last replicate
       drop.files <- unique(paste(DF$rn[DF$V1 == max(DF$V1)]))
-      
       if (length(tab) == 2) {
         # Drop the results for the run(s) that did not complete
-        sim_results <- sim_results[sim_results$rn != paste(DF$rn[DF$V1 == min(DF$V1)]), ]
+        sim_results <- sim_results[sim_results$rn != paste(
+          DF$rn[DF$V1 == min(DF$V1)]), ]
       }
     }
     
@@ -248,7 +261,8 @@ test_replicates <- function(folder, # folder to save to
   # `sample_matrix`
   if (!is.null(sample_matrix)) {
     if (ncol(sample_matrix) != Parameters$n_yrs) {
-      message('Number of years in sample_matrix does not match n_yrs.  Resampling from sample_matrix')
+      message(paste0("Number of years in sample_matrix does not match n_yrs. ",
+                     "Resampling from sample_matrix"))
       sample_matrix <- sample_matrix[, sample(ncol(sample_matrix), 
                                               Parameters$n_yrs,
                                               replace = T)]
@@ -269,7 +283,7 @@ test_replicates <- function(folder, # folder to save to
   }
   if (is.null(Parameters$alt_model)) {
     # Alternative years models to test, 0 is every year, 1 every other year, 2 
-    # is 'skip years'?
+    # is based on a sampling matrix
     Parameters$alt_model <- c(0, 1)
   }
   
@@ -309,21 +323,30 @@ test_replicates <- function(folder, # folder to save to
   # Set up an index that can be used to limit the runs that are analyzed
   index <- rep(min_xxx:max_xxx, length.out = n_runs)
   
-  # If other models besides 4 were included, make sure that there is a spatial
-  # percent of 1 included
-  if (sum(grep(4, Parameters$alt_model, invert = TRUE)) > 0) {
-    if (max(Parameters$spatial_percents) < 1) {
-      Parameters$spatial_percents <- c(Parameters$spatial_percents, 1)
+  # If model 5 is used make sure a spatial consistency is provided. Include 0
+  # and 1 if they are not already included 
+  if (5 %in% Parameters$alt_model) {
+    
+    if (is.null(Parameters$spatial_percents)){
+      message(paste0("No levels of spatial consistency provided, only 0 and ",
+                     "100% will be tested."))
+      Parameters$spatial_percents <- c(0, 1)
     }
-    if (min(Parameters$spatial_percents) > 0) {
+    
+    if (!(0 %in% Parameters$spatial_percents)) {
       Parameters$spatial_percents <- c(0, Parameters$spatial_percents)
+    }
+    
+    if (!(1 %in% Parameters$spatial_percents)) {
+      Parameters$spatial_percents <- c(Parameters$spatial_percents, 1)
     }
   }
   
   # Set up a progress bar
-  pb_run <- progress_bar$new(format = "Testing replicates [:bar] :percent eta: :eta", 
-                             total = max(n_runs), 
-                             clear = FALSE)
+  pb_run <- progress_bar$new(
+    format = "Testing replicates [:bar] :percent eta: :eta", 
+    total = max(n_runs), 
+    clear = FALSE)
   
   # For every simulation (run), as limited by the `index` and `xxx`...
   for (rn in (1:n_runs)[index == xxx]) {

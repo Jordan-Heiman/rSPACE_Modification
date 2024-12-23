@@ -1,5 +1,5 @@
 ### Power
-### Jordan Heiman, Martha Ellis
+### Martha Ellis, updated and additions by Jordan Heiman
 ## Date: 2023-03-24
 
 ## Function purpose: Run an analysis for an encounter history
@@ -22,7 +22,13 @@
 #     A vector of encounter histories where each value in the vector is a 
 #     character string of the encounter history for one grid cell 
 # n_visit:
-#     Number of visits to each site each season/year
+#     Number of visits to each site each year
+
+
+
+
+
+
 # sample_yr:
 #     Default: 0 ; An integer of value 0, 1, or 2 indicating the yearly sampling 
 #     model used with 0 indicating grid cells are sampled every year, 1 
@@ -30,7 +36,7 @@
 #     consistent grid cells are sampled on an irregular sampling schedule
 # FPC:
 #     Default: 1; The finite population correction factor to be used  
-# sample_martrix:
+# sample_matrix:
 #     Default: NULL; Required to not be NULL if sample_yr is set to 2; A matrix
 #     where each row represents a grid cell and each column represents a year of 
 #     sampling, each cell contains a 1 or a 0 value indicating whether that 

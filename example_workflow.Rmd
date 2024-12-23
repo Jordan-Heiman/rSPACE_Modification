@@ -10,11 +10,11 @@ bibliography: references.bib
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# rSPACE Modification for Simulated Occupancy Sampling
+# `rSPACE` Modification for Simulated Occupancy Sampling
 
 # Example Workflow
 
-[rSPACE original creator: Dr. Martha
+[`rSPACE` original creator: Dr. Martha
 Ellis](https://github.com/mmellis/rSPACE)
 
 Script modifications by: Jordan Heiman
@@ -29,6 +29,10 @@ These script files were originally designed to provide a framework to analyze th
 
 These scripts are not currently setup as a package format but this repository can be cloned and setup as a local R project. This example workflow follows the simulations done by @heiman_2024.
 
+### 1.1 Software Requirements
+
+Running this script requires use of the package `RMark` which is dependent upon installation of the software Mark. Instructions for installing and setting up the `RMark` package and Mark can be found at <http://www.phidot.org/software/mark/rmark/>
+
 ## 2. Library / Functions / Data
 
 ### 2.1 Library
@@ -42,7 +46,7 @@ source("2.Code/1.Functions/00_package_loading.R")
 
 ### 2.2 Functions
 
-Source all the functions that are needed for running the modified rSPACE analysis. As well as sourcing one file with C++ functions that are used for efficiency.
+Source all the functions that are needed for running the modified `rSPACE` analysis. As well as sourcing one file with C++ functions that are used for efficiency.
 
 ```{r function sourcing, message = FALSE}
 list.files("2.Code/1.Functions/",
@@ -93,48 +97,62 @@ The corresponding list must take the following format:
 Parameters <- list(
   # Intial population size
   N = 50, 
+  
   # Population growth rate
   lmda = 0.933, 
+  
   # [Optional] The population trend type, either "abundance-exponential" (Default) 
   # or "abundance-linear". Under abundance-exponential, the population 
   # experiences exponential growth with the same value of lambda every year. 
   # Under abundance-linear, the population experiences and overall growth rate 
   # of the above lambda value between year 1 and the last year of the simulation. 
   trendtype = "abundance-exponential",
+  
   # Number of years to simulate
   n_yrs = 10, 
+  
   # Proportion of each type of individual (in this case 2 types, females [60% of
   # population] and males [40% of population])
   MFratio = c(0.6, 0.4), 
+  
   # Buffer distance between activity centers for each type of individual in 
   # kilometers (in this case female activity centers are >= 16 km apart and 
   # males are >= 25 km apart)
   buffer = c(16, 25), 
+  
   # Movement radius for each type of individual in kilometers (in this case 
   # female movement radius is 8.5 km and male is 12.5 km apart)
   moveDist = c(8.5, 12.5),
+  
   # Proportion of movements for each individual type that is within their 
   # respective movement radii (in this case 90% of female movement is within the 
   # 8.5 km radius and 70% of male movement is within their 12.5 km radius)
   moveDistQ = c(0.9, 0.7),
+  
   # Maximum proportion of movements to include for each individual type with 
   # 1 indicating to include all movements (in this case 95% of movements are
   # included for both females and males)
   maxDistQ = c(0.95, 0.95),
+  
   # Grid cell size for sampling in square kilometers
   grid_size = 100,
+  
   # The minimum raster value for activity centers when creating the population
   habitat.cutoff = 1,
+  
   # Minimum proportion of a grid cell that must be >= the habitat cutoff for 
   # sampling to occur in the grid cell
   sample.cutoff = 0.5,
+  
   # Maximum number of visits to a grid cell per year to simulated (number of 
   # visits can be subset to smaller values during analysis process)
   n_visits = 6,
+  
   # Whether or not activity centers and  which individuals are removed should be
   # weighted based on the underlying raster values. Setting this to TRUE can 
   # take a lot of processing power depending on the size of the focal area. 
   wghts = FALSE, 
+  
   # The class of raster that was read in above, this can be a spatRaster or 
   # Rast depening on the function/package that was used
   raster_type = class(map))
@@ -167,7 +185,9 @@ The next few arguments handle some of the setting options for the creating the s
 printN <- 1
 
 # A value of 1 or 0 to indicate whether or not to save the simulation parameters
-# to an RData file with 1 indicating to save them.
+# to an RData file with 1 indicating to save them.IT is recommended to save
+# these as they are needed by the `test_replicates` function and can be used to 
+# refer to later if details of the simulation are forgotten.
 saveParameters <- 1
 
 # A value of 1 or 0 to indicate whether or not to save a raster file of the
@@ -222,22 +242,32 @@ As the function runs it will print the replicate number that it is working on, t
 
 Once the replicates have been created the `test_replicates` function is used to subset the encounter histories to simulate sampling the population. 
 
-The first argument of this function identifies where the replicate encounter histories and other associated files can be found. This should be a folder within the `folder.dir`, named the same as the `run.label`. 
+The first argument of this function identifies where the replicate encounter histories and other associated files can be found. This should be a folder within the `folder.dir`, named the same as the `run.label`. A `base.name` is provided that matches that provided in the `create_replicates` function so that the encounter histories can be identified.
 
 ```{r test_reps folder}
 folder <- paste0(folder.dir, "/", run.label)
+base.name
 ```
 
-Followed by a set of parameters in a similar format to those provided to the `create_replicates` function. These first few are from the original version of rSPACE. 
+Followed by a set of parameters again. These need to include the parameters that were provided to the `create_replicates` function. If the parameters were saved in an RData file they can just be read in and added to. The first few parameters that are needed for the `test_replicates` function are from the original version of `rSPACE` 
 
 ```{r test_reps parameters}
+# Read in the existing parameters that were saved by create_replicates
+Parameters <- local({
+  load(paste0(folder, "/output/Parameters.RData"))
+  Parameters
+})
+
 # The number of visits to simulate to each grid cell each year. If simulating
 # more than one number of visits, these should be in a vector of integers.
 Parameters$n_visit_test <- c(3, 4, 5, 6)
-# The detection probability to simulate for each visit to each grid cell, as a 
-# decimal value. If simulating more than one detection probability, these should
-# be in a vector of numeric values. 
-Parameters$detP_test <- c(0.8, 0.9)
+
+# The simulated detection probability to test, as a decimal value. This value 
+# is not directly the detection probability, see Ellis et al. 2014 or Heiman et
+# al. 2024 for a more indepth description of this value. If simulating more than 
+# one detection probability, these should be in a vector of numeric values. 
+Parameters$detP_test <- c(0.3, 0.8)
+
 # The proportion of the total number of grid cells to simulate sampling. This 
 # value will only be used for some sampling strategies but should always be
 # provided. The sampling strategies that use these values are the "Annual",
@@ -248,7 +278,7 @@ Parameters$grid_sample <- c(0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70,
                             0.80, 0.90)
 ```
 
-Next, one or more sampling frameworks must be chosen. There are 6 to choose from in the updated version of rSPACE, with the first 3 being original to the rSPACE package. 
+Next, one or more sampling frameworks must be chosen. There are 6 to choose from in the updated version of `rSPACE`, with the first 3 being original to the `rSPACE` package. 
 
 ```{r sampling framework options, echo = FALSE}
 
@@ -300,6 +330,60 @@ Parameters$alt_model <- c(0, 1, 2, 4)
 # Parameters$alt_model <- c(6)
 ```
 
+The last required argument is a name to give to the results files. The default here is to use "sim_results.txt" as the default but it may be prudent to use something a little more distinctive if more than one simulation will be run on the same population. Possibly something that incorporates the details of the testing simulation. However, the file name should still end with "sim_results.txt" as other functions use that name to find the results files.                  
+
+```{r results_file}
+# Grid sapmle: range of values
+# Number of visits: 3, 4, 5, 6
+# Simulated detection prob: 30%, 80%
+# Sampling frameworks: 0, 1, 2, 4
+results.file <- "gsRange_v3456_p3080_model0124_sim_results.txt"
+```
+
+The next few arguments handle some of the setting options for the creating the simulations. For this example, all these will be set to their default values. 
+
+```{r test replicates options}
+# A raster can be provided to represent sub-populations to be sampled. This 
+# raster should be based in the sampling grid layer and filtered to a sub-region.
+# This raster should have the grid cells that are to be sampled as the second 
+# band
+SubPop <- NULL
+
+# These xxx values are used
+xxx <- 1
+max_xxx <- 1
+min_xxx <- 1
+
+
+
+# The number of replicates used to test the sampling frameworks can be limited 
+# by providing a value to the `n_runs` argument. If none is provided, then all 
+# replicates will be used 
+n_runs <- NULL
+
+# The default of the simulated sampling uses a finite population correction to 
+# account for if the sampling covers a large fraction of the landscape. If 
+# sampling is not a large fraction of the landscape, this value should not 
+# significantly affect the results, however this can optionally be turned off by 
+# setting FPCind = FALSE. 
+FPCind <- TRUE
+
+# A TRUE/FALSE operator to indicate whether or not to confirm that is it alright 
+# for rSPACE to write text files before running simulations
+skipConfirm <- FALSE
+
+# A TRUE/FALSE operator to indicate whether or not to add to existing simulation 
+# results
+add <- FALSE
+
+# A TRUE/FALSE operator to indicate whether or not to overwrite existing 
+# simulation results
+overwrite <- TRUE
+
+
+randomize <- T
+```
+
 ### 4.1 Sampling Matrix Option
 
 If the sampling matrix framework is chosen to be tested, a sampling matrix needs to be provided to the `test_replicates` function. This is a matrix where each row represents a grid cell and each column represents a year of sampling, with a 1 or a 0 value indicating whether that corresponding grid cell was sampled (1) or not sampled (0) during the corresponding year. This is provided as a separate argument to the function, outside of the `Parameters` list.
@@ -321,7 +405,7 @@ if (2 %in% Parameters$alt_model) {
   # Then a sampling matrix can be created, ideally this would represent how 
   # sampling is planned to be conducted rather then having the cells sampled 
   # being determined by a random draw from a binomial distribution.
-  sampling_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 
+  sample_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 
                                           1, 
                                           prob = 0.5), 
                             nrow = grid_count,
@@ -339,7 +423,7 @@ if (4 %in% Parameters$alt_model) {
 }
 ```
 
-### 4.3 Fully Variable
+### 4.3 Fully Variable Option
 
 If selecting a fully variable sampling framework, there are 2 versions to choose from: one using a uniform distribution and one using a beta distribution. Under both of these, the proportion of the grid cells to be sampled each year of the simulation will be a random draw from the corresponding distribution. Under this framework, the `Parameters$grid_sample` values will be ignored because of this, however it is still required to be provided. The details of the distribution used does need to be provided in the `Parameters` list. 
 
@@ -351,37 +435,59 @@ Under the fully variable - uniform sampling framework, a uniform distribution is
 if (5 %in% Parameters$alt_model) {
   Parameters$grid_min <- 0.01
   Parameters$grid_max <- 0.10
+} else {
+  Parameters$grid_min <- 1
+  Parameters$grid_max <- 1
 }
+    
 ```
 
 #### 4.3.1 Beta Distribution
 
 Under the fully variable - beta sampling framework, a beta distribution is used to select the proportion of the landscape sampled each year. For this distribution, an [alpha and beta parameter for the distribution](https://mathlets.org/mathlets/beta-distribution/) needs to be provided in the `Parameters` list. 
 
-```{r beta dist}
+```{r beta dist alpha beta}
 if (6 %in% Parameters$alt_model) {
   Parameters$alpha <- 1.5
   Parameters$beta <- 30
+} else {
+  Parameters$alpha <- NULL
+  Parameters$beta <- NULL
 }
 ```
 
-                    Parameters = params,
-                    SubPop = NULL,
-                    sample_matrix = NULL,
-                    xxx = 1,
-                    max_xxx = 1,
-                    min_xxx = 1,
-                    base.name = paste0(sim_name, "_"),
-                    results.file = results_file,
-                    n_runs = NULL,
-                    FPCind = TRUE,
-                    skipConfirm = T,
-                    overwrite = overwrite,
-                    add = !overwrite,
-                    randomize = T
+Along with the beta distribution to select the proportion of the landscape to be sampled, a baseline amount of sampling can be set. Providing a baseline proportion of the landscape will simply add that proportion to whatever value is drawn from the beta distribution every year so that there is always at least that proportion of the landscape sampled.
 
+```{r beta dist baseline}
+if (6 %in% Parameters$alt_model) {
+  Parameters$base <- 0.05
+} else {
+  Parameters$base <- NULL
+}
+```
 
+### 4.4 Run Test Replicates
 
+Now the function can be run:
+
+```{r test_reps}
+test_replicates(folder = folder,
+                Parameters = Parameters,
+                SubPop = SubPop,
+                sample_matrix = sample_matrix,
+                xxx = xxx,
+                max_xxx = max_xxx,
+                min_xxx = min_xxx,
+                base.name = base.name,
+                results.file = results.file,
+                n_runs = n_runs,
+                FPCind = FPCind,
+                skipConfirm = skipConfirm,
+                overwrite = overwrite,
+                add = add,
+                randomize = randomize)
+```
+                  
 
 
 
@@ -394,12 +500,18 @@ if (6 %in% Parameters$alt_model) {
 
 
 # notes to self (mostly things I meant to fix a long time ago but do not affect functionality):
+get_results:
+  - look for other files w/o "sim_results"?
+
 test reps:
   - alt model 3 - fix the awkward numbering
   - alt models 5 and 6 must be run separately- is this still true?
   - check that grid_sample is ignored with alt models 5 and 6 (if so why is it still required?)
+  - check that grid_min and grid_max is not required when alt_model is not 5
+  - check that alpha, beta, and base are not required when alt_model is not 6
+  - ditto on xxx, min_xxx, and max_xxx
+  - randomize argument? this should have been taken out?
 
 extra parameters - create replicates: 
   - effective sampling area (measured in sqkm)? (how to incorporate when selecting new cells every year, currently would be the same effective area in each cell? Been wanting to figure out how to make this work for a while.)
-
-  -repeat.groups? looks like for repeating an individual type, not sure why you would want that? Get rid of it? Write up in instructions?
+  - repeat.groups? looks like for repeating an individual type, not sure why you would want that? Get rid of it? Write up in instructions?
