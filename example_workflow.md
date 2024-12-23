@@ -1,7 +1,7 @@
 
 # rSPACE Modification for Simulated Occupancy Sampling
 
-## Example Workflow
+# Example Workflow
 
 [rSPACE original creator: Dr. Martha
 Ellis](https://github.com/mmellis/rSPACE)
@@ -11,9 +11,9 @@ Script modifications by: Jordan Heiman
 Last updated: 2024-12-20
 
 *This workflow is still in development, however, functions within this
-repo work as is and should be well commented*
+repo work as is and are well commented to aid in their use*
 
-### Introduction
+## 1. Introduction
 
 These script files were originally designed to provide a framework to
 analyze the statistical power of wildlife occupancy monitoring designs
@@ -26,9 +26,9 @@ These scripts are not currently setup as a package format but this
 repository can be cloned and setup as a local R project. This example
 workflow follows the simulations done by Heiman et al. (2024).
 
-### Library / Functions / Data
+## 2. Library / Functions / Data
 
-#### Library
+### 2.1 Library
 
 Begin by installing and loading the packages that are needed for the
 workflow.
@@ -37,7 +37,7 @@ workflow.
 source("2.Code/1.Functions/00_package_loading.R")
 ```
 
-#### Functions
+### 2.2 Functions
 
 Source all the functions that are needed for running the modified rSPACE
 analysis. As well as sourcing one file with C++ functions that are used
@@ -56,7 +56,7 @@ list.files("2.Code/1.Functions/",
 dyn.load("2.Code/2.C_Scripts/SPACE.dll")
 ```
 
-#### Input Data
+### 2.3 Input Data
 
 Import example raster of species distribution. In this case a portion of
 predicted wolverine (*Gulo gulo*) in the Bitterroot National Forest in
@@ -71,7 +71,7 @@ map[is.na(map)] <- 0
 map[map < 0] <- 0
 ```
 
-#### Create Replicates
+## 3. Create Replicates
 
 To begin a simulated population must first be created using the create
 replicates function. This function uses a series of parameters to create
@@ -290,7 +290,7 @@ by a progress bar for the replicate itself and one for the overall
 simulation of all replicates. Once complete, the location of the
 outputted files will be printed and the names fo the simulation files.
 
-#### Test Replicates
+## 4. Test Replicates
 
 Once the replicates have been created the `test_replicates` function is
 used to subset the encounter histories to simulate sampling the
@@ -322,10 +322,9 @@ Parameters$detP_test <- c(0.8, 0.9)
 # "Biannual", "Sample Matrix" and "Spatially Inconsistent". If simulating more
 # than one proportion of the total cells, this should be a vector of numeric
 # values. 
-Parameters$grid_sample
+Parameters$grid_sample <- c(0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 
+                            0.80, 0.90)
 ```
-
-    ## NULL
 
 Next, one or more sampling frameworks must be chosen. There are 6 to
 choose from in the updated version of rSPACE, with the first 3 being
@@ -349,9 +348,17 @@ sampling frameworks.
 
 ``` r
 Parameters$alt_model <- c(0, 1, 2, 4)
+
+# OR
+
+# Parameters$alt_model <- c(5)
+
+# OR
+
+# Parameters$alt_model <- c(6)
 ```
 
-##### Sampling Matrix Option
+### 4.1 Sampling Matrix Option
 
 If the sampling matrix framework is chosen to be tested, a sampling
 matrix needs to be provided to the `test_replicates` function. This is a
@@ -362,26 +369,94 @@ corresponding year. This is provided as a separate argument to the
 function, outside of the `Parameters` list.
 
 ``` r
-# The number of grid cells can be determined from the number of rows in one of 
-# the simulation output files
-grid_count <- local({
-  sim_files <- list.files(path = folder, 
-                          pattern = ".txt$", 
-                          full.names = TRUE)
+if (2 %in% Parameters$alt_model) {
+  # The number of grid cells can be determined from the number of rows in one of 
+  # the simulation output files
+  grid_count <- local({
+    sim_files <- list.files(path = folder, 
+                            pattern = ".txt$", 
+                            full.names = TRUE)
+    
+    read.csv(sim_files[[1]], 
+             header = FALSE) %>% 
+      nrow()
+  })
   
-  read.csv(sim_files[[1]], 
-           header = FALSE) %>% 
-    nrow()
-})
-
-sampling_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 1, prob = 0.5), 
-                          nrow = grid_count,
-                          ncol = Parameters$n_yrs)
+  # Then a sampling matrix can be created, ideally this would represent how 
+  # sampling is planned to be conducted rather then having the cells sampled 
+  # being determined by a random draw from a binomial distribution.
+  sampling_matrix <- matrix(data = rbinom(grid_count * Parameters$n_yrs, 
+                                          1, 
+                                          prob = 0.5), 
+                            nrow = grid_count,
+                            ncol = Parameters$n_yrs)
+}
 ```
 
-##### Spatially Inconsistent Option
+### 4.2 Spatially Inconsistent Option
 
-If a spatially inconsistent sampling framework is chosen,
+If a spatially inconsistent sampling framework is chosen, the proportion
+of the landscape to be held spatially consistent needs to be provided in
+the `Parameters` list. This proportion represents an amount of cells
+that will be randomly selected to be sampled throughout all years of the
+simulation and is referred to as ‘spatial consistency’. As an example,
+if `Parameters$grid_sample` = 0.55 and the spatial consistency is 0.10
+in a simulations with 100 grid cells. Every year 50% (50 cells) will be
+sampled, 90% of those cells (45 cells) will be randomly selected every
+year of the simulation. The last 10% (5 cells), will be randomly chosen
+in the first year fo the simulation but then will be those same cells
+the rest of the years of the simulation. Under this definition, spatial
+consistency of 0 means that all cells will be randomly chosen in all
+years and spatial consistency of 1 means that the grid cells will always
+be the same in every year (the same as the annual sampling framework).
+Multiple values can be provided as a vector of values to test spatial
+consistency.
+
+``` r
+if (4 %in% Parameters$alt_model) {
+  Parameters$spatial_percents <- c(0.05, 0.30, 0.55, 0.80)
+}
+```
+
+### 4.3 Fully Variable
+
+If selecting a fully variable sampling framework, there are 2 versions
+to choose from: one using a uniform distribution and one using a beta
+distribution. Under both of these, the proportion of the grid cells to
+be sampled each year of the simulation will be a random draw from the
+corresponding distribution. Under this framework, the
+`Parameters$grid_sample` values will be ignored because of this, however
+it is still required to be provided. The details of the distribution
+used does need to be provided in the `Parameters` list.
+
+#### 4.3.1 Uniform Distribution
+
+Under the fully variable - uniform sampling framework, a uniform
+distribution is used to select the proportion of the landscape sampled
+each year. For this distribution, a minimum and maximum proportion of
+the landscape needs to be provided in the `Parameters` list.
+
+``` r
+if (5 %in% Parameters$alt_model) {
+  Parameters$grid_min <- 0.01
+  Parameters$grid_max <- 0.10
+}
+```
+
+#### 4.3.1 Beta Distribution
+
+Under the fully variable - beta sampling framework, a beta distribution
+is used to select the proportion of the landscape sampled each year. For
+this distribution, an [alpha and beta parameter for the
+distribution](https://mathlets.org/mathlets/beta-distribution/) needs to
+be provided in the `Parameters` list.
+
+``` r
+if (6 %in% Parameters$alt_model) {
+  Parameters$alpha <- 1.5
+  Parameters$beta <- 30
+}
+```
 
                     Parameters = params,
                     SubPop = NULL,
@@ -397,15 +472,6 @@ If a spatially inconsistent sampling framework is chosen,
                     overwrite = overwrite,
                     add = !overwrite,
                     randomize = T
-
-test reps: - alt model 3?
-
-extra parameters - create replicates: -effective sampling area (measured
-in sqkm)? (how to incorporate when selecting new cells every year,
-currently would be the same effective area in each cell?)
-
--repeat.groups? looks like for repeating an individual type, not sure
-why you would want that?
 
 # References
 
@@ -432,3 +498,17 @@ Occupancy Trend Estimation.” *Ecological Indicators* 169 (169).
 </div>
 
 </div>
+
+# notes to self (mostly things I meant to fix a long time ago but do not affect functionality):
+
+test reps: - alt model 3 - fix the awkward numbering - alt models 5 and
+6 must be run separately- is this still true? - check that grid_sample
+is ignored with alt models 5 and 6 (if so why is it still required?)
+
+extra parameters - create replicates: - effective sampling area
+(measured in sqkm)? (how to incorporate when selecting new cells every
+year, currently would be the same effective area in each cell? Been
+wanting to figure out how to make this work for a while.)
+
+-repeat.groups? looks like for repeating an individual type, not sure
+why you would want that? Get rid of it? Write up in instructions?
