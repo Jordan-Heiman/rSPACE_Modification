@@ -1,6 +1,7 @@
 .Rproj.user
 .Rhistory
-.RData
-.Ruserdata
-.inp
-README.html
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+Outputs/
